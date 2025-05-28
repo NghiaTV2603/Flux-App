@@ -1,0 +1,113 @@
+### Test Auth Service Endpoints
+
+# Register new user
+POST http://localhost:3001/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "username": "testuser",
+  "password": "password123"
+}
+
+###
+
+# Login user
+POST http://localhost:3001/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+# Forgot password
+POST http://localhost:3001/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+###
+
+# Refresh token (replace with actual refresh token)
+POST http://localhost:3001/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "your-refresh-token-here"
+}
+
+###
+
+# Reset password (replace with actual token)
+POST http://localhost:3001/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "your-reset-token-here",
+  "newPassword": "newpassword123"
+}
+
+### Test User Service Endpoints
+
+# Get user profile (replace with actual user ID)
+GET http://localhost:3002/users/550e8400-e29b-41d4-a716-446655440000
+
+###
+
+# Update user profile (replace with actual user ID)
+PATCH http://localhost:3002/users/550e8400-e29b-41d4-a716-446655440000
+Content-Type: application/json
+
+{
+  "displayName": "Test User Display",
+  "bio": "This is my bio",
+  "customStatus": "Working on something cool"
+}
+
+###
+
+# Update user status (replace with actual user ID)
+PATCH http://localhost:3002/users/550e8400-e29b-41d4-a716-446655440000/status
+Content-Type: application/json
+
+{
+  "status": "online"
+}
+
+###
+
+# Search users
+GET http://localhost:3002/users/search/test
+
+### Test Gateway API (when implemented)
+
+# Register via Gateway
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "email": "gateway@example.com",
+  "username": "gatewayuser",
+  "password": "password123"
+}
+
+###
+
+# Login via Gateway
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "gateway@example.com",
+  "password": "password123"
+}
+
+###
+
+# Get user profile via Gateway
+GET http://localhost:3000/users/550e8400-e29b-41d4-a716-446655440000 

@@ -1,0 +1,143 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: flux-postgres
+    environment:
+      POSTGRES_DB: flux_db
+      POSTGRES_USER: flux_user
+      POSTGRES_PASSWORD: flux_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - flux-network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: flux-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: flux_user
+      MONGO_INITDB_ROOT_PASSWORD: flux_password
+      MONGO_INITDB_DATABASE: flux_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - flux-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: flux-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - flux-network
+
+  # RabbitMQ Message Queue
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: flux-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: flux_user
+      RABBITMQ_DEFAULT_PASS: flux_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - flux-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: flux-auth-service
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_auth_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_EXPIRES_IN=7d
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - flux-network
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: flux-user-service
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_user_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - flux-network
+    volumes:
+      - ./services/user-service:/app
+      - /app/node_modules
+
+  # Gateway API
+  gateway-api:
+    build:
+      context: ./services/gateway-api
+      dockerfile: Dockerfile
+    container_name: flux-gateway-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:3000
+      - USER_SERVICE_URL=http://user-service:3000
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+    depends_on:
+      - auth-service
+      - user-service
+      - redis
+    networks:
+      - flux-network
+    volumes:
+      - ./services/gateway-api:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  flux-network:
+    driver: bridge
