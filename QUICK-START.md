@@ -5,25 +5,47 @@
 ### Bước 1: Yêu cầu
 
 - Docker Desktop đang chạy
-- Node.js 18+
+- Node.js 18+ (chỉ cần cho development mode)
 
-### Bước 2: Clone và chạy
+## 🐳 Option 1: Chạy với Docker (Khuyên dùng - Siêu nhanh!)
+
+### Cách 1: Sử dụng Docker Desktop GUI
+
+1. Mở Docker Desktop
+2. Vào thư mục project trong terminal: `cd flux-project`
+3. Chạy: `./docker-start.sh`
+4. Vào Docker Desktop → Containers → Click vào "flux-app" để monitor
+5. **Chỉ cần click ▶️ để start/stop toàn bộ project!**
+
+### Cách 2: Command line
+
+```bash
+# Build và start toàn bộ project
+docker-compose up -d --build
+
+# Stop project
+docker-compose down
+```
+
+**Xong! Tất cả services sẽ tự động:**
+
+- ✅ Build và start theo đúng thứ tự
+- ✅ Setup databases tự động
+- ✅ Restart nếu có lỗi
+- ✅ Healthcheck tự động
+
+## 🔧 Option 2: Development Mode (Manual)
+
+### Bước 2: Clone và setup
 
 ```bash
 # Clone project
 git clone <repository-url>
 cd flux-project
 
-# Chạy script tự động
-./start.sh dev
+# Setup databases và dependencies
+./start-fixed.sh dev
 ```
-
-**Xong! Script sẽ tự động:**
-
-- ✅ Khởi động databases (PostgreSQL, MongoDB, Redis, RabbitMQ)
-- ✅ Cài đặt dependencies cho tất cả services
-- ✅ Setup databases với Prisma
-- ✅ Hướng dẫn chạy services
 
 ### Bước 3: Chạy services (3 terminals)
 
@@ -38,7 +60,14 @@ cd services/user-service && npm run start:dev
 cd services/gateway-api && npm run start:dev
 ```
 
-### Bước 4: Test APIs
+## 🎯 URLs quan trọng
+
+- **Gateway API**: http://localhost:3000
+- **Auth Service**: http://localhost:3001
+- **User Service**: http://localhost:3002
+- **RabbitMQ Management**: http://localhost:15672 (flux_user:flux_password)
+
+## 🧪 Test APIs
 
 ```bash
 # Test Auth Service
@@ -48,23 +77,40 @@ curl -X POST http://localhost:3001/auth/register \
 
 # Test User Service
 curl http://localhost:3002/users/search/test
+
+# Test Gateway API
+curl http://localhost:3000/health
 ```
 
-## 🎯 URLs quan trọng
+## 🛠️ Troubleshooting
 
-- **Auth Service**: http://localhost:3001
-- **User Service**: http://localhost:3002
-- **Gateway API**: http://localhost:3000
-- **RabbitMQ Management**: http://localhost:15672 (flux_user:flux_password)
-
-## 🛠️ Nếu có lỗi
+### Docker Mode
 
 ```bash
-# Test toàn bộ setup
+# View logs
+docker-compose logs -f
+
+# Restart specific service
+docker-compose restart auth-service
+
+# Rebuild if code changed
+docker-compose up -d --build
+```
+
+### Development Mode
+
+```bash
+# Test setup
 ./test-setup.sh
 
 # Restart databases
 docker-compose restart postgres mongodb redis rabbitmq
 ```
 
-**Xem file `GETTING-STARTED.md` để có hướng dẫn chi tiết hơn!**
+## 📊 Monitoring
+
+- **Docker Desktop**: Xem containers, logs, resources
+- **RabbitMQ UI**: http://localhost:15672
+- **Service Health**: Tự động check mỗi 30s
+
+**Với Docker mode, bạn chỉ cần click ▶️ trên Docker Desktop là xong! 🎉**
