@@ -1,98 +1,165 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Flux API Gateway
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API Gateway cho hệ thống Flux - điểm vào duy nhất cho tất cả các microservices.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tính năng
 
-## Description
+- **Authentication & Authorization**: Xác thực JWT và quản lý session
+- **Rate Limiting**: Giới hạn số lượng request theo endpoint và user
+- **Request Routing**: Định tuyến request đến các microservice tương ứng
+- **Response Caching**: Cache response để tăng hiệu suất
+- **Logging**: Ghi log tất cả request/response
+- **CORS**: Cấu hình CORS cho frontend
+- **Circuit Breaking**: Xử lý lỗi khi microservice không khả dụng
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Cấu trúc
 
-## Project setup
-
-```bash
-$ npm install
+```
+src/
+├── config/             # Cấu hình ứng dụng
+├── controllers/        # Controllers cho từng service
+├── guards/            # Guards cho authentication và rate limiting
+├── redis/             # Redis service cho caching
+├── services/          # HTTP client service
+└── main.ts           # Entry point
 ```
 
-## Compile and run the project
+## Cài đặt
 
 ```bash
-# development
-$ npm run start
+# Install dependencies
+npm install
 
-# watch mode
-$ npm run start:dev
+# Copy environment file
+cp .env.example .env
 
-# production mode
-$ npm run start:prod
+# Start development server
+npm run start:dev
 ```
 
-## Run tests
+## Biến môi trường
+
+```env
+# Server Configuration
+PORT=3000
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_EXPIRES_IN=1h
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Microservices URLs
+AUTH_SERVICE_URL=http://localhost:3001
+USER_SERVICE_URL=http://localhost:3002
+SERVER_SERVICE_URL=http://localhost:3003
+CHANNEL_SERVICE_URL=http://localhost:3004
+MESSAGE_SERVICE_URL=http://localhost:3005
+FRIEND_SERVICE_URL=http://localhost:3006
+DM_SERVICE_URL=http://localhost:3007
+FILE_SERVICE_URL=http://localhost:3008
+ROLE_SERVICE_URL=http://localhost:3009
+VOICE_SERVICE_URL=http://localhost:3010
+NOTIFICATION_SERVICE_URL=http://localhost:3011
+SECURITY_SERVICE_URL=http://localhost:3012
+ANALYTICS_SERVICE_URL=http://localhost:3013
+```
+
+## API Endpoints
+
+### Authentication
+
+- `POST /api/auth/register` - Đăng ký tài khoản
+- `POST /api/auth/login` - Đăng nhập
+- `POST /api/auth/forgot-password` - Quên mật khẩu
+- `POST /api/auth/reset-password` - Reset mật khẩu
+- `POST /api/auth/refresh-token` - Refresh token
+
+### Users
+
+- `GET /api/users/:id` - Lấy thông tin user
+- `PATCH /api/users/:id` - Cập nhật thông tin user
+- `GET /api/users/status/:id` - Lấy trạng thái online
+- `GET /api/users` - Tìm kiếm user
+
+### Servers
+
+- `POST /api/servers` - Tạo server
+- `GET /api/servers/:id` - Lấy thông tin server
+- `PATCH /api/servers/:id` - Cập nhật server
+- `DELETE /api/servers/:id` - Xóa server
+- `POST /api/servers/:id/join` - Tham gia server
+- `POST /api/servers/:id/invite` - Tạo mã mời
+- `GET /api/servers/:id/members` - Lấy danh sách thành viên
+- `POST /api/servers/:id/channels` - Tạo channel
+
+### Channels
+
+- `GET /api/channels/:id` - Lấy thông tin channel
+- `PATCH /api/channels/:id` - Cập nhật channel
+- `DELETE /api/channels/:id` - Xóa channel
+- `POST /api/channels/:channelId/messages` - Gửi tin nhắn
+- `GET /api/channels/:channelId/messages` - Lấy lịch sử tin nhắn
+
+### Friends
+
+- `POST /api/friends/request` - Gửi lời mời kết bạn
+- `POST /api/friends/accept` - Chấp nhận lời mời
+- `POST /api/friends/block` - Block user
+- `DELETE /api/friends/remove` - Xóa bạn
+- `GET /api/friends` - Lấy danh sách bạn
+
+### Direct Messages
+
+- `POST /api/dm/send` - Gửi tin nhắn riêng
+- `GET /api/dm/conversation/:userId` - Lấy cuộc trò chuyện
+- `DELETE /api/dm/messages/:id` - Xóa tin nhắn
+- `PATCH /api/dm/messages/:id` - Sửa tin nhắn
+
+## Rate Limiting
+
+API Gateway áp dụng rate limiting cho các endpoint:
+
+- **Auth endpoints**: 3-10 requests/15 phút
+- **Message endpoints**: 30-50 messages/phút
+- **General endpoints**: 50-200 requests/phút
+
+## Development
 
 ```bash
-# unit tests
-$ npm run test
+# Start in development mode
+npm run start:dev
 
-# e2e tests
-$ npm run test:e2e
+# Build for production
+npm run build
 
-# test coverage
-$ npm run test:cov
+# Start production server
+npm run start:prod
+
+# Run tests
+npm test
+
+# Run linter
+npm run lint
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Docker
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Build image
+docker build -t flux-gateway .
+
+# Run container
+docker run -p 3000:3000 --env-file .env flux-gateway
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Monitoring
 
-## Resources
+Gateway tự động log tất cả requests và có thể tích hợp với:
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- **Prometheus**: Metrics collection
+- **Grafana**: Visualization
+- **ELK Stack**: Centralized logging
+- **Jaeger**: Distributed tracing
