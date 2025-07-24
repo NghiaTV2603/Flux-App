@@ -52,7 +52,7 @@ export class RateLimitGuard implements CanActivate {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
           message:
             rateLimitOptions.message ||
-            'Quá nhiều request, vui lòng thử lại sau',
+            'Too many requests, please try again later',
           error: 'Too Many Requests',
         },
         HttpStatus.TOO_MANY_REQUESTS,

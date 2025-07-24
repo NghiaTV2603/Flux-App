@@ -22,7 +22,7 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('Token không được cung cấp');
+      throw new UnauthorizedException('Token is not provided');
     }
 
     try {
@@ -31,7 +31,7 @@ export class AuthGuard implements CanActivate {
         `blacklist:${token}`,
       );
       if (isBlacklisted) {
-        throw new UnauthorizedException('Token đã bị vô hiệu hóa');
+        throw new UnauthorizedException('Token is disabled');
       }
 
       // Verify JWT token
@@ -42,7 +42,7 @@ export class AuthGuard implements CanActivate {
       // Kiểm tra user session trong Redis
       const userSession = await this.redisService.get(`session:${payload.sub}`);
       if (!userSession) {
-        throw new UnauthorizedException('Session đã hết hạn');
+        throw new UnauthorizedException('Session expired');
       }
 
       // Attach user info to request
@@ -52,7 +52,7 @@ export class AuthGuard implements CanActivate {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      throw new UnauthorizedException('Token không hợp lệ');
+      throw new UnauthorizedException('Invalid token');
     }
 
     return true;
