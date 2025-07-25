@@ -1,0 +1,96 @@
+erDiagram
+    %% PostgreSQL Tables
+    FRIENDSHIPS {
+        uuid id PK
+        uuid requester_id FK "User who sent friend request"
+        uuid addressee_id FK "User who received request"
+        enum status "pending|accepted|declined|blocked"
+        text message "Optional friend request message"
+        timestamp created_at
+        timestamp updated_at
+        timestamp responded_at "When request was accepted/declined"
+    }
+    
+    FRIEND_LISTS_CACHE {
+        uuid user_id PK
+        uuid friend_id FK
+        varchar friend_username "Denormalized from user service"
+        varchar friend_display_name "Denormalized"
+        text friend_avatar_url "Denormalized"
+        enum friend_status "online|offline|busy|away|invisible"
+        enum friendship_status "accepted|pending|blocked"
+        timestamp friendship_created_at
+        timestamp last_updated
+    }
+    
+    BLOCKS {
+        uuid id PK
+        uuid blocker_id FK "User who blocked"
+        uuid blocked_id FK "User who was blocked"
+        text reason "Optional block reason"
+        timestamp created_at
+    }
+    
+    FRIEND_SUGGESTIONS {
+        uuid id PK
+        uuid user_id FK "User receiving suggestion"
+        uuid suggested_user_id FK "Suggested friend"
+        enum suggestion_type "mutual_friends|mutual_servers|contact_import"
+        json metadata "Suggestion context data"
+        integer mutual_count "Number of mutual connections"
+        float confidence_score "AI confidence score 0-1"
+        boolean is_dismissed "User dismissed suggestion"
+        timestamp created_at
+        timestamp dismissed_at
+    }
+    
+    %% Read Models (Materialized Views)
+    FRIEND_STATS {
+        uuid user_id PK
+        integer total_friends "Count of accepted friendships"
+        integer pending_sent "Outgoing pending requests"
+        integer pending_received "Incoming pending requests"
+        integer blocked_count "Users blocked by this user"
+        integer mutual_servers "Servers shared with friends"
+        timestamp last_updated
+    }
+    
+    SOCIAL_GRAPH {
+        uuid user_id PK
+        json friend_ids "Array of friend user IDs"
+        json server_ids "Array of server IDs user belongs to"
+        json mutual_friends "Precomputed mutual friend counts"
+        integer social_score "Social activity score"
+        timestamp last_updated
+    }
+    
+    %% Relationships
+    FRIENDSHIPS ||--|| FRIEND_LISTS_CACHE : "cached_as"
+    FRIENDSHIPS ||--|| FRIEND_STATS : "aggregated_in"
+    FRIEND_SUGGESTIONS }o--|| FRIEND_STATS : "based_on"
+    
+    %% Indexes
+    FRIENDSHIPS {
+        unique_constraint requester_addressee "requester_id, addressee_id"
+        index idx_friendships_requester "requester_id, status"
+        index idx_friendships_addressee "addressee_id, status"
+        index idx_friendships_status "status, created_at"
+    }
+    
+    FRIEND_LISTS_CACHE {
+        index idx_friend_cache_user "user_id, friendship_status"
+        index idx_friend_cache_status "friend_status, last_updated"
+    }
+    
+    BLOCKS {
+        unique_constraint blocker_blocked "blocker_id, blocked_id"
+        index idx_blocks_blocker "blocker_id, created_at"
+        index idx_blocks_blocked "blocked_id, created_at"
+    }
+    
+    FRIEND_SUGGESTIONS {
+        unique_constraint user_suggested "user_id, suggested_user_id"
+        index idx_suggestions_user "user_id, confidence_score desc"
+        index idx_suggestions_type "suggestion_type, created_at"
+        index idx_suggestions_dismissed "is_dismissed, created_at"
+    } 

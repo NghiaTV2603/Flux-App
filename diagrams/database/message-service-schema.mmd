@@ -1,0 +1,112 @@
+erDiagram
+    MESSAGES {
+        objectid _id PK "MongoDB ObjectId"
+        uuid message_id UK "UUID for referential integrity"
+        uuid channel_id FK "References channels.id"
+        uuid server_id "Denormalized for sharding"
+        uuid author_id FK "References user_profiles.user_id"
+        varchar author_username "Denormalized for performance"
+        text content "Message content"
+        enum content_type "text|embed|system"
+        json attachments "File attachments array"
+        json embeds "Rich embeds array"
+        json mentions "Users, roles, channels mentioned"
+        json reactions "Emoji reactions with counts"
+        uuid reply_to "Reply to message_id"
+        uuid thread_id "Thread root message_id"
+        boolean is_edited "Edit status"
+        json edit_history "Edit history array"
+        boolean is_deleted "Soft delete flag"
+        timestamp deleted_at
+        timestamp created_at
+        timestamp updated_at
+        varchar shard_key "Sharding key = channel_id"
+    }
+    
+    DIRECT_MESSAGES {
+        objectid _id PK "MongoDB ObjectId"
+        uuid message_id UK "UUID for referential integrity"
+        uuid conversation_id "Generated from sorted participant IDs"
+        json participants "Always 2 users, sorted array"
+        uuid author_id FK "Sender user ID"
+        uuid recipient_id FK "Recipient user ID"
+        text content "Message content"
+        json attachments "File attachments array"
+        boolean is_read "Read status"
+        timestamp read_at
+        boolean is_edited "Edit status"
+        json edit_history "Edit history array"
+        boolean is_deleted "Soft delete flag"
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    MESSAGE_THREADS {
+        objectid _id PK
+        uuid thread_id UK "Thread root message ID"
+        uuid channel_id FK
+        uuid server_id
+        uuid starter_id FK "Thread starter user ID"
+        varchar title "Thread title"
+        integer message_count "Count of messages in thread"
+        timestamp last_message_at
+        boolean is_archived
+        timestamp created_at
+    }
+    
+    %% Read Models (Elasticsearch)
+    MESSAGE_SEARCH_INDEX {
+        uuid message_id PK
+        uuid channel_id
+        uuid server_id
+        uuid author_id
+        varchar author_username
+        text content "Full-text searchable"
+        json attachments "Nested objects"
+        json mentions "Nested objects"
+        timestamp created_at
+        boolean is_deleted
+    }
+    
+    %% Analytics (ClickHouse)
+    MESSAGE_ANALYTICS {
+        uuid message_id
+        uuid channel_id
+        uuid server_id
+        uuid author_id
+        enum message_type "text|media|embed|system"
+        integer content_length
+        integer attachment_count
+        integer mention_count
+        integer reaction_count
+        timestamp created_at
+        varchar hour_bucket "YYYY-MM-DD HH for aggregation"
+    }
+    
+    %% Relationships (Conceptual in MongoDB)
+    MESSAGES ||--o{ MESSAGE_THREADS : "can_start"
+    MESSAGES ||--|| MESSAGE_SEARCH_INDEX : "indexed_in"
+    MESSAGES ||--|| MESSAGE_ANALYTICS : "analyzed_in"
+    DIRECT_MESSAGES ||--|| MESSAGE_SEARCH_INDEX : "indexed_in"
+    
+    %% MongoDB Indexes
+    MESSAGES {
+        index channel_created "channel_id, created_at desc"
+        index author_created "author_id, created_at desc" 
+        index server_created "server_id, created_at desc"
+        index thread_messages "thread_id, created_at asc"
+        index mentions_gin "mentions (multikey)"
+        shard_key channel_id "Shard by channel_id"
+    }
+    
+    DIRECT_MESSAGES {
+        index conversation_created "conversation_id, created_at desc"
+        index participants_created "participants, created_at desc"
+        index author_recipient "author_id, recipient_id, created_at desc"
+        shard_key conversation_id "Shard by conversation_id"
+    }
+    
+    MESSAGE_THREADS {
+        index channel_last_message "channel_id, last_message_at desc"
+        index starter_threads "starter_id, created_at desc"
+    } 

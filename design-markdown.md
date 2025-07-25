@@ -20,7 +20,6 @@
   - [WebSocket Service](#websocket-service)
   - [Notification Service](#notification-service)
   - [Security Service](#security-service)
-  - [Analytics Service](#analytics-service)
   - [Gateway API](#gateway-api)
 - [System Architecture](#system-architecture)
 - [Message Queue Design](#message-queue-design)
@@ -48,7 +47,6 @@
 | WebSocket Service       | Quản lý kết nối websocket cho real-time communication       |
 | Notification Service    | Gửi email, push notification                                |
 | Security Service        | Rate limiting, chống spam, báo cáo vi phạm                  |
-| Analytics Service       | Thu thập và phân tích dữ liệu sử dụng                       |
 | Gateway API             | API Gateway                                                 |
 
 ## Core Features
@@ -560,42 +558,6 @@
 | window    | Timestamp | Thời gian bắt đầu đếm |
 | expiresAt | Timestamp |                       |
 
-### Analytics Service
-
-**Mô tả**: Thu thập và phân tích dữ liệu sử dụng.
-
-#### API Routes:
-
-| Method | Route                          | Mô tả                     |
-| ------ | ------------------------------ | ------------------------- |
-| POST   | /analytics/events              | Ghi nhận sự kiện          |
-| GET    | /analytics/dashboard           | Lấy dữ liệu cho dashboard |
-| GET    | /analytics/servers/:id/metrics | Lấy metrics của server    |
-| GET    | /analytics/users/:id/metrics   | Lấy metrics của user      |
-
-#### Database Schema
-
-**Event**
-
-| Field      | Type      | Ghi chú                               |
-| ---------- | --------- | ------------------------------------- |
-| id         | UUID      | PK                                    |
-| userId     | UUID      | FK → User (có thể null cho anonymous) |
-| eventType  | String    | Loại sự kiện                          |
-| metadata   | JSON      | Dữ liệu bổ sung                       |
-| timestamp  | Timestamp |                                       |
-| deviceInfo | JSON      | Thông tin thiết bị                    |
-
-**Metric**
-
-| Field      | Type      | Ghi chú                                  |
-| ---------- | --------- | ---------------------------------------- |
-| id         | UUID      | PK                                       |
-| metricType | String    | 'active_users', 'messages_sent', etc.    |
-| value      | Number    |                                          |
-| dimension  | JSON      | Thông tin phân loại (server, channel...) |
-| timestamp  | Timestamp |                                          |
-
 ### Gateway API
 
 **Mô tả**: Điểm vào duy nhất cho client, định tuyến request đến các service.
@@ -631,7 +593,6 @@ v      v      v      v                        v
 FriendSvc DMSvc SecSvc WebSocketSvc           NotifySvc
                                               |
                                               v
-                                          AnalyticsSvc
 ```
 
 ## Message Queue Design
@@ -646,7 +607,6 @@ FriendSvc DMSvc SecSvc WebSocketSvc           NotifySvc
 - `server.queue`
 - `friend.queue`
 - `dm.queue`
-- `analytics.queue`
 
 ### Các event chính:
 
@@ -684,9 +644,6 @@ FriendSvc DMSvc SecSvc WebSocketSvc           NotifySvc
 
 - Docker + Kubernetes
 - CI/CD: GitHub Actions
-- Monitoring: Prometheus + Grafana
-- Logging: ELK Stack
-- Tracing: Jaeger
 
 ### Security:
 
@@ -703,7 +660,6 @@ FriendSvc DMSvc SecSvc WebSocketSvc           NotifySvc
 - Redis cho caching
 - PostgreSQL cho dữ liệu quan hệ
 - MongoDB cho dữ liệu dạng document
-- TimescaleDB cho analytics
 
 ## Caching Strategy
 

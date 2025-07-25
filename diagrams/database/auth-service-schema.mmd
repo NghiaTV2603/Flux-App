@@ -1,0 +1,72 @@
+erDiagram
+    USERS {
+        uuid id PK
+        varchar email UK "Unique email address"
+        varchar username UK "Unique username"
+        varchar password_hash "Nullable for OAuth users"
+        boolean is_verified "Email verification status"
+        boolean is_active "Account active status"
+        timestamp created_at
+        timestamp updated_at
+        integer version "Optimistic locking"
+    }
+    
+    OAUTH_PROVIDERS {
+        uuid id PK
+        uuid user_id FK
+        varchar provider "google, facebook, github"
+        varchar provider_id "ID from OAuth provider"
+        jsonb provider_data "Additional OAuth metadata"
+        timestamp created_at
+    }
+    
+    USER_SESSIONS {
+        uuid id PK
+        uuid user_id FK
+        varchar refresh_token_hash UK "Hashed refresh token"
+        jsonb device_info "Browser, OS, IP, etc"
+        timestamp expires_at
+        timestamp created_at
+        timestamp last_used_at
+    }
+    
+    PASSWORD_RESETS {
+        uuid id PK
+        varchar email
+        varchar token UK "Reset token"
+        timestamp expires_at
+        boolean used "Token usage status"
+        timestamp created_at
+    }
+    
+    RATE_LIMITS {
+        uuid id PK
+        uuid user_id FK
+        varchar ip_address
+        varchar endpoint "API endpoint"
+        integer count "Request count"
+        timestamp window_start
+        timestamp expires_at
+    }
+    
+    %% Relationships
+    USERS ||--o{ OAUTH_PROVIDERS : "has"
+    USERS ||--o{ USER_SESSIONS : "has"
+    USERS ||--o{ RATE_LIMITS : "limited_by"
+    
+    %% Indexes (shown as attributes)
+    USERS {
+        index idx_users_email "email"
+        index idx_users_username "username"
+        index idx_users_active "is_active, created_at"
+    }
+    
+    USER_SESSIONS {
+        index idx_sessions_user "user_id, expires_at"
+        index idx_sessions_token "refresh_token_hash"
+    }
+    
+    OAUTH_PROVIDERS {
+        index idx_oauth_user_provider "user_id, provider"
+        unique_constraint provider_provider_id "provider, provider_id"
+    } 

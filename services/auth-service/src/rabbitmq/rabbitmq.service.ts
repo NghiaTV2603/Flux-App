@@ -36,7 +36,6 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       await this.channel.assertExchange(this.exchange, 'topic', {
         durable: true,
       });
-
       this.logger.log('Connected to RabbitMQ');
     } catch (error) {
       this.logger.error('Failed to connect to RabbitMQ:', error);

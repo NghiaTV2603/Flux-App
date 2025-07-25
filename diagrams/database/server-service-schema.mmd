@@ -1,0 +1,130 @@
+erDiagram
+    SERVERS {
+        uuid id PK
+        varchar name "Server name"
+        text description "Server description"
+        text icon_url "Server icon URL"
+        text banner_url "Server banner URL"
+        uuid owner_id FK "References user_profiles.user_id"
+        varchar invite_code UK "Unique invite code"
+        boolean is_public "Public server discovery"
+        integer max_members "Maximum member limit"
+        jsonb features "Server boost features array"
+        timestamp created_at
+        timestamp updated_at
+        integer version "Optimistic locking"
+        tsvector search_vector "Full-text search"
+    }
+    
+    SERVER_MEMBERS {
+        uuid id PK
+        uuid server_id FK
+        uuid user_id FK "References user_profiles.user_id"
+        varchar username "Denormalized from user service"
+        varchar display_name "Denormalized from user service"
+        varchar nickname "Server-specific nickname"
+        jsonb roles "Embedded role data array"
+        jsonb permissions "Computed permissions cache"
+        timestamp joined_at
+        timestamp last_seen_at
+    }
+    
+    CHANNELS {
+        uuid id PK
+        uuid server_id FK
+        varchar name "Channel name"
+        text description "Channel description"
+        enum type "text|voice|category|announcement"
+        uuid parent_id FK "Parent category (self-reference)"
+        integer position "Channel order position"
+        boolean is_private "Private channel access"
+        jsonb permissions "Channel-specific permissions"
+        jsonb settings "Channel settings (rate limit, etc)"
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    SERVER_ROLES {
+        uuid id PK
+        uuid server_id FK
+        varchar name "Role name"
+        varchar color "Hex color code"
+        integer position "Role hierarchy position"
+        jsonb permissions "Role permissions object"
+        boolean is_hoisted "Show separately in member list"
+        boolean is_mentionable "Can be @mentioned"
+        timestamp created_at
+    }
+    
+    CHANNEL_MEMBERS {
+        uuid id PK
+        uuid channel_id FK
+        uuid user_id FK
+        timestamp last_read_at "Last message read timestamp"
+        jsonb permissions "User-specific channel permissions"
+        timestamp joined_at
+    }
+    
+    %% Read Models
+    SERVER_DIRECTORY {
+        uuid id PK
+        varchar name
+        text description
+        text icon_url
+        boolean is_public
+        integer member_count "Computed member count"
+        integer channel_count "Computed channel count"
+        tsvector search_vector
+        timestamp created_at
+    }
+    
+    USER_SERVERS {
+        uuid user_id FK
+        uuid server_id FK
+        varchar name
+        text icon_url
+        jsonb roles
+        jsonb permissions
+        varchar nickname
+        boolean is_owner "user_id = server.owner_id"
+        timestamp last_seen_at
+        integer unread_count "Computed from messages"
+    }
+    
+    %% Relationships
+    SERVERS ||--o{ SERVER_MEMBERS : "has"
+    SERVERS ||--o{ CHANNELS : "contains"
+    SERVERS ||--o{ SERVER_ROLES : "defines"
+    CHANNELS ||--o{ CHANNEL_MEMBERS : "has"
+    CHANNELS ||--o{ CHANNELS : "parent_child"
+    SERVER_MEMBERS }o--o{ SERVER_ROLES : "assigned"
+    
+    %% Projections
+    SERVERS ||--|| SERVER_DIRECTORY : "projected_to"
+    SERVER_MEMBERS ||--|| USER_SERVERS : "projected_to"
+    
+    %% Indexes
+    SERVERS {
+        index idx_servers_owner "owner_id"
+        index idx_servers_invite "invite_code"
+        index idx_servers_public "is_public, created_at"
+        index idx_servers_search "search_vector (GIN)"
+    }
+    
+    SERVER_MEMBERS {
+        unique_constraint server_user "server_id, user_id"
+        index idx_members_server "server_id, joined_at"
+        index idx_members_user "user_id"
+        index idx_members_roles "roles (GIN)"
+    }
+    
+    CHANNELS {
+        index idx_channels_server "server_id, position"
+        index idx_channels_parent "parent_id"
+        index idx_channels_type "type, server_id"
+    }
+    
+    SERVER_ROLES {
+        unique_constraint server_name "server_id, name"
+        index idx_roles_server_position "server_id, position"
+    } 

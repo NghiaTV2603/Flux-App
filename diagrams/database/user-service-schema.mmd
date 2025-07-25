@@ -1,0 +1,87 @@
+erDiagram
+    USER_PROFILES {
+        uuid user_id PK "Same as auth service user ID"
+        varchar username UK "Synced from auth service"
+        varchar email "Synced from auth service"
+        varchar display_name "User's display name"
+        text avatar_url "Avatar image URL"
+        text bio "User biography"
+        enum status "online|offline|busy|away|invisible"
+        varchar custom_status "Custom status message"
+        varchar timezone "User timezone"
+        varchar language "Preferred language"
+        timestamp created_at
+        timestamp updated_at
+        integer version "Optimistic locking"
+        tsvector search_vector "Full-text search vector"
+    }
+    
+    USER_SETTINGS {
+        uuid user_id PK
+        varchar theme "dark|light|auto"
+        boolean notifications_enabled
+        boolean sound_enabled
+        boolean show_online_status
+        boolean allow_direct_messages
+        boolean allow_friend_requests
+        jsonb privacy_settings "Additional privacy settings"
+        timestamp updated_at
+    }
+    
+    USER_ACTIVITIES {
+        uuid id PK
+        uuid user_id FK
+        varchar activity_type "playing|listening|watching|streaming"
+        varchar name "Activity name"
+        text details "Activity details"
+        varchar state "Current state"
+        jsonb timestamps "start, end times"
+        timestamp created_at
+    }
+    
+    USER_ANALYTICS {
+        uuid id PK
+        uuid user_id FK
+        varchar event_type "login|logout|message_sent|etc"
+        jsonb event_data "Event metadata"
+        timestamp timestamp "Event timestamp"
+    }
+    
+    %% Read Models (Materialized Views)
+    USER_DIRECTORY {
+        uuid user_id PK
+        varchar username
+        varchar display_name
+        text avatar_url
+        enum status
+        varchar custom_status
+        boolean show_online_status
+        boolean allow_friend_requests
+        integer friend_count "Computed from friendships"
+        tsvector search_vector
+        timestamp updated_at
+    }
+    
+    %% Relationships
+    USER_PROFILES ||--|| USER_SETTINGS : "has"
+    USER_PROFILES ||--o{ USER_ACTIVITIES : "has"
+    USER_PROFILES ||--o{ USER_ANALYTICS : "generates"
+    USER_PROFILES ||--|| USER_DIRECTORY : "projected_to"
+    
+    %% Indexes
+    USER_PROFILES {
+        index idx_profiles_username "username"
+        index idx_profiles_display_name "display_name"
+        index idx_profiles_status "status, updated_at"
+        index idx_profiles_search "search_vector (GIN)"
+    }
+    
+    USER_ACTIVITIES {
+        index idx_activities_user_time "user_id, created_at"
+        index idx_activities_type "activity_type, created_at"
+    }
+    
+    USER_ANALYTICS {
+        index idx_analytics_user_event "user_id, event_type, timestamp"
+        partition_by timestamp "Monthly partitions"
+    } 

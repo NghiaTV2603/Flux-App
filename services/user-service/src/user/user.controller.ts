@@ -15,28 +15,28 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get(':id')
+  @Get(':userId')
   @HttpCode(HttpStatus.OK)
-  async getUserProfile(@Param('id') id: string) {
-    return this.userService.getUserProfile(id);
+  async getUserProfile(@Param('userId') userId: string) {
+    return this.userService.getUserProfile(userId);
   }
 
-  @Patch(':id')
+  @Patch(':userId')
   @HttpCode(HttpStatus.OK)
   async updateProfile(
-    @Param('id') id: string,
+    @Param('userId') userId: string,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.userService.updateProfile(id, updateProfileDto);
+    return this.userService.updateProfile(userId, updateProfileDto);
   }
 
-  @Patch(':id/status')
+  @Patch(':userId/status')
   @HttpCode(HttpStatus.OK)
   async updateStatus(
-    @Param('id') id: string,
+    @Param('userId') userId: string,
     @Body() updateStatusDto: UpdateStatusDto,
   ) {
-    return this.userService.updateStatus(id, updateStatusDto.status);
+    return this.userService.updateStatus(userId, updateStatusDto.status);
   }
 
   @Get('search/:query')

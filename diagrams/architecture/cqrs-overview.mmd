@@ -1,0 +1,107 @@
+graph TB
+    subgraph "Client Applications"
+        WEB["Web App<br/>(React/Next.js)"]
+        MOBILE["Mobile App<br/>(React Native)"]
+        DESKTOP["Desktop App<br/>(Electron)"]
+    end
+    
+    subgraph "API Gateway Layer"
+        GATEWAY["API Gateway<br/>(NestJS)<br/>- JWT Authentication<br/>- Rate Limiting<br/>- Request Composition<br/>- Circuit Breaker"]
+    end
+    
+    subgraph "Command Side (Write)"
+        subgraph "Services"
+            AUTH_W["Auth Service<br/>(Write)"]
+            USER_W["User Service<br/>(Write)"]
+            SERVER_W["Server Service<br/>(Write)"]
+            MESSAGE_W["Message Service<br/>(Write)"]
+            SOCIAL_W["Social Service<br/>(Write)"]
+        end
+        
+        subgraph "Write Databases"
+            AUTH_DB["Auth DB<br/>(PostgreSQL)<br/>- users<br/>- sessions<br/>- oauth_providers"]
+            USER_DB["User DB<br/>(PostgreSQL)<br/>- user_profiles<br/>- user_settings<br/>- user_activities"]
+            SERVER_DB["Server DB<br/>(PostgreSQL)<br/>- servers<br/>- server_members<br/>- channels<br/>- server_roles"]
+            MESSAGE_DB["Message DB<br/>(MongoDB Sharded)<br/>- messages<br/>- direct_messages"]
+            SOCIAL_DB["Social DB<br/>(PostgreSQL + Neo4j)<br/>- friendships<br/>- blocks"]
+        end
+    end
+    
+    subgraph "Event Store"
+        EVENT_STORE["Event Store<br/>(PostgreSQL + MongoDB)<br/>- event_store<br/>- event_snapshots<br/>- event_projections"]
+    end
+    
+    subgraph "Query Side (Read)"
+        subgraph "Read Models"
+            USER_READ["User Read Model<br/>(PostgreSQL + Redis)<br/>- user_directory<br/>- user_cache"]
+            SERVER_READ["Server Read Model<br/>(PostgreSQL + Redis)<br/>- server_directory<br/>- user_servers"]
+            MESSAGE_READ["Message Read Model<br/>(Elasticsearch)<br/>- message_search<br/>- conversation_cache"]
+            ANALYTICS_READ["Analytics Read Model<br/>(ClickHouse)<br/>- user_analytics<br/>- server_analytics"]
+        end
+        
+        subgraph "Cache Layer"
+            REDIS_CLUSTER["Redis Cluster<br/>- Session Cache<br/>- Query Results<br/>- Real-time Data<br/>- Rate Limiting"]
+        end
+    end
+    
+    subgraph "Message Queue"
+        RABBITMQ["RabbitMQ<br/>- Domain Events<br/>- Read Model Updates<br/>- Cross-Service Communication"]
+    end
+    
+    %% Client to Gateway
+    WEB --> GATEWAY
+    MOBILE --> GATEWAY
+    DESKTOP --> GATEWAY
+    
+    %% Gateway to Services
+    GATEWAY --> AUTH_W
+    GATEWAY --> USER_W
+    GATEWAY --> SERVER_W
+    GATEWAY --> MESSAGE_W
+    GATEWAY --> SOCIAL_W
+    
+    %% Services to Write Databases
+    AUTH_W --> AUTH_DB
+    USER_W --> USER_DB
+    SERVER_W --> SERVER_DB
+    MESSAGE_W --> MESSAGE_DB
+    SOCIAL_W --> SOCIAL_DB
+    
+    %% Write to Event Store
+    AUTH_W --> EVENT_STORE
+    USER_W --> EVENT_STORE
+    SERVER_W --> EVENT_STORE
+    MESSAGE_W --> EVENT_STORE
+    SOCIAL_W --> EVENT_STORE
+    
+    %% Event Store to Message Queue
+    EVENT_STORE --> RABBITMQ
+    
+    %% Message Queue to Read Models
+    RABBITMQ --> USER_READ
+    RABBITMQ --> SERVER_READ
+    RABBITMQ --> MESSAGE_READ
+    RABBITMQ --> ANALYTICS_READ
+    
+    %% Read Models to Cache
+    USER_READ --> REDIS_CLUSTER
+    SERVER_READ --> REDIS_CLUSTER
+    MESSAGE_READ --> REDIS_CLUSTER
+    
+    %% Gateway reads from Read Models
+    GATEWAY -.->|"Read Queries"| USER_READ
+    GATEWAY -.->|"Read Queries"| SERVER_READ
+    GATEWAY -.->|"Read Queries"| MESSAGE_READ
+    GATEWAY -.->|"Read Queries"| ANALYTICS_READ
+    GATEWAY -.->|"Cache Queries"| REDIS_CLUSTER
+    
+    %% Styling
+    classDef writeService fill:#ff9999,stroke:#ff0000,stroke-width:2px
+    classDef readService fill:#99ff99,stroke:#00ff00,stroke-width:2px
+    classDef database fill:#9999ff,stroke:#0000ff,stroke-width:2px
+    classDef cache fill:#ffff99,stroke:#ffff00,stroke-width:2px
+    
+    class AUTH_W,USER_W,SERVER_W,MESSAGE_W,SOCIAL_W writeService
+    class USER_READ,SERVER_READ,MESSAGE_READ,ANALYTICS_READ readService
+    class AUTH_DB,USER_DB,SERVER_DB,MESSAGE_DB,SOCIAL_DB,EVENT_STORE database
+    class REDIS_CLUSTER cache 

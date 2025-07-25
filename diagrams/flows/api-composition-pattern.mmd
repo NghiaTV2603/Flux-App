@@ -1,0 +1,111 @@
+sequenceDiagram
+    participant C as "Client App"
+    participant G as "API Gateway<br/>(Composition Layer)"
+    participant A as "Auth Service"
+    participant U as "User Service"
+    participant S as "Server Service"
+    participant So as "Social Service"
+    participant M as "Message Service"
+    participant Cache as "Redis Cache"
+
+    Note over C,Cache: API Composition Pattern<br/>Single Request, Multiple Services
+
+    C->>+G: GET /api/users/12345/dashboard<br/>Authorization: Bearer JWT
+    
+    Note over G: JWT Validation<br/>Extract user context
+    
+    par Parallel Service Calls
+        G->>+A: GET /auth/users/12345<br/>{basic auth info}
+    and
+        G->>+U: GET /users/12345/profile<br/>{profile, settings}
+    and
+        G->>+S: GET /users/12345/servers<br/>{user's servers}
+    and
+        G->>+So: GET /users/12345/friends<br/>{friend count, status}
+    and
+        G->>+M: GET /users/12345/unread-count<br/>{unread messages}
+    and
+        G->>+Cache: GET dashboard:12345<br/>{cached dashboard data}
+    end
+    
+    alt Cache Hit (Partial)
+        Cache-->>G: Partial cached data<br/>{servers, friends cached}
+        Note over G: Use cached data<br/>Skip some service calls
+    else Cache Miss
+        Note over G: Proceed with all calls
+    end
+    
+    A-->>-G: {id, email, username, isVerified}
+    U-->>-G: {profile, settings, activity}
+    S-->>-G: {servers: [{id, name, icon, unreadCount}]}
+    So-->>-G: {friendCount: 50, onlineFriends: 12}
+    M-->>-G: {totalUnread: 5, dmUnread: 2}
+    
+    Note over G: Data Composition<br/>& Transformation
+    
+    G->>G: Compose unified response<br/>Apply business rules<br/>Transform data structures
+    
+    par Update Cache
+        G->>Cache: SET dashboard:12345<br/>TTL: 5 minutes<br/>{composed data}
+    and Log Analytics
+        G->>G: Log request metrics<br/>Service call latencies<br/>Cache hit ratios
+    end
+    
+    G-->>-C: Unified Dashboard Response<br/>{<br/>  user: {profile, auth, settings},<br/>  social: {friends, activity},<br/>  servers: {list, unread},<br/>  messages: {unread, recent}<br/>}
+    
+    Note over C,Cache: Error Handling & Fallbacks
+    
+    C->>+G: GET /api/servers/67890/dashboard
+    
+    par Service Calls with Timeouts
+        G->>+S: GET /servers/67890<br/>timeout: 2s
+    and
+        G->>+M: GET /servers/67890/recent-activity<br/>timeout: 3s
+    and
+        G->>+U: GET /servers/67890/members?limit=50<br/>timeout: 2s
+    end
+    
+    S-->>-G: Server details ✓
+    
+    Note over M: Service Timeout ❌
+    M-->>G: Timeout (3s exceeded)
+    
+    U-->>-G: Member list ✓
+    
+    Note over G: Partial Response Strategy<br/>Include available data<br/>Mark missing data
+    
+    G-->>-C: Partial Server Dashboard<br/>{<br/>  server: {details, members},<br/>  activity: null,<br/>  error: "Activity service unavailable"<br/>}
+    
+    Note over C,Cache: Circuit Breaker Pattern
+    
+    rect rgb(255, 240, 240)
+        Note over G: Circuit Breaker States<br/>- CLOSED: Normal operation<br/>- OPEN: Skip failing service<br/>- HALF-OPEN: Test recovery
+    end
+    
+    C->>+G: GET /api/users/search?q=john
+    
+    Note over G: Message Service<br/>Circuit OPEN (too many failures)
+    
+    par Available Services
+        G->>+U: Search user profiles
+    and
+        Note over G: Skip Message Service<br/>(Circuit OPEN)
+    end
+    
+    U-->>-G: User search results
+    
+    G-->>-C: Search Results<br/>{<br/>  users: [...],<br/>  messages: null,<br/>  note: "Message search unavailable"<br/>}
+    
+    Note over C,Cache: Benefits of API Composition
+    
+    rect rgb(240, 255, 240)
+        Note over C,G: Client Benefits<br/>✓ Single API call<br/>✓ Reduced network overhead<br/>✓ Consistent error handling<br/>✓ Unified response format
+    end
+    
+    rect rgb(240, 240, 255)
+        Note over G,Cache: Gateway Benefits<br/>✓ Service coordination<br/>✓ Caching strategies<br/>✓ Circuit breaker protection<br/>✓ Request/response transformation
+    end
+    
+    rect rgb(255, 255, 240)
+        Note over A,M: Service Benefits<br/>✓ Service autonomy<br/>✓ Independent scaling<br/>✓ Technology diversity<br/>✓ Team ownership
+    end 
