@@ -1,0 +1,25 @@
+sequenceDiagram
+    participant C as "Client"
+    participant G as "Gateway API<br/>(Port 3000)"
+    participant U as "User Service<br/>(Port 3002)"
+    participant R as "RabbitMQ"
+    participant N as "Notification Service<br/>(Future)"
+    participant DB as "User DB"
+
+    C->>+G: PUT /api/users/profile<br/>{displayName, bio, avatar}
+    Note over G: JWT Authentication<br/>& Rate Limiting
+    G->>+U: Forward authenticated request
+    
+    U->>+DB: UPDATE user_profiles<br/>SET display_name, bio, avatar
+    DB-->>-U: Profile updated
+    
+    Note over U,R: Event Publishing
+    U->>+R: Publish profile.updated event<br/>{userId, changes, timestamp}
+    
+    Note over R,N: Async Notification
+    R->>+N: Deliver to notification service
+    N->>N: Send notifications<br/>to user's friends
+    N->>-R: ACK processed
+    
+    U-->>-G: 200 OK<br/>{updatedProfile}
+    G-->>-C: Success response 

@@ -1,6 +1,13 @@
-import { Injectable, ConflictException, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  UnauthorizedException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
@@ -8,9 +15,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly rabbitMQService: RabbitMQService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -24,7 +34,9 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email or username already exists');
+      throw new ConflictException(
+        'User with this email or username already exists',
+      );
     }
 
     // Hash password
@@ -45,6 +57,18 @@ export class AuthService {
         createdAt: true,
       },
     });
+
+    // Publish user.created event to RabbitMQ
+    try {
+      await this.rabbitMQService.publishUserCreated({
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish user.created event:', error);
+      // Don't fail the registration if event publishing fails
+    }
 
     // Generate tokens
     const tokens = await this.generateTokens(user.id);
@@ -120,7 +144,11 @@ export class AuthService {
       where: { token },
     });
 
-    if (!resetRecord || resetRecord.used || resetRecord.expiresAt < new Date()) {
+    if (
+      !resetRecord ||
+      resetRecord.used ||
+      resetRecord.expiresAt < new Date()
+    ) {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
 
@@ -186,4 +214,4 @@ export class AuthService {
       refreshToken,
     };
   }
-} 
+}

@@ -1,0 +1,43 @@
+graph TB
+    subgraph "Client Layer"
+        WEB["Web App<br/>(React/Vue)"]
+        MOBILE["Mobile App<br/>(React Native)"]
+    end
+    
+    subgraph "Gateway Layer"
+        GW["API Gateway<br/>(Port 3000)<br/>- Authentication<br/>- Rate Limiting<br/>- Request Routing"]
+    end
+    
+    subgraph "Service Layer"
+        AUTH["Auth Service<br/>(Port 3001)<br/>- User Registration<br/>- JWT Tokens<br/>- OAuth"]
+        USER["User Service<br/>(Port 3002)<br/>- User Profiles<br/>- Settings<br/>- Activities"]
+        OTHER["Other Services<br/>(Future)<br/>- Server Service<br/>- Message Service<br/>- File Service"]
+    end
+    
+    subgraph "Message Layer"
+        RABBIT["RabbitMQ<br/>(Port 5672)<br/>- Event Routing<br/>- Message Persistence<br/>- Dead Letter Queue"]
+    end
+    
+    subgraph "Data Layer"
+        AUTHDB["Auth Database<br/>(PostgreSQL)<br/>- users<br/>- oauth_providers<br/>- refresh_tokens"]
+        USERDB["User Database<br/>(PostgreSQL)<br/>- user_profiles<br/>- user_settings<br/>- user_activities"]
+        REDIS["Redis Cache<br/>(Port 6379)<br/>- Session Storage<br/>- Rate Limit Data"]
+    end
+    
+    WEB --> GW
+    MOBILE --> GW
+    GW --> AUTH
+    GW --> USER
+    GW --> OTHER
+    
+    AUTH --> RABBIT
+    USER --> RABBIT
+    OTHER --> RABBIT
+    
+    AUTH --> AUTHDB
+    USER --> USERDB
+    AUTH --> REDIS
+    USER --> REDIS
+    
+    RABBIT -.->|"user.created<br/>user.updated"| USER
+    RABBIT -.->|"profile.updated<br/>status.changed"| OTHER 

@@ -26,7 +26,7 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      // Kiểm tra token có trong blacklist không
+      // Check if token is in blacklist
       const isBlacklisted = await this.redisService.exists(
         `blacklist:${token}`,
       );
@@ -39,7 +39,7 @@ export class AuthGuard implements CanActivate {
         secret: this.configService.jwtSecret,
       });
 
-      // Kiểm tra user session trong Redis
+      // Check if user session is in Redis
       const userSession = await this.redisService.get(`session:${payload.sub}`);
       if (!userSession) {
         throw new UnauthorizedException('Session expired');
