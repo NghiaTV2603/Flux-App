@@ -5,15 +5,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { connect } from 'amqplib';
-import type { Connection, Channel } from 'amqplib';
+import * as amqp from 'amqplib';
 import { UserService } from '../user/user.service';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
-  private connection: Connection;
-  private channel: Channel;
+  private connection: amqp.ChannelModel; // Use any to avoid TypeScript issues
+  private channel: amqp.Channel;
   private readonly exchange = 'app.events';
   private readonly queueName = 'user.service.queue';
 
@@ -34,7 +33,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private async connect() {
     try {
       const rabbitmqUrl = this.configService.get<string>('rabbitmq.url');
-      this.connection = await connect(rabbitmqUrl || 'amqp://localhost:5672');
+      this.connection = await amqp.connect(
+        rabbitmqUrl || 'amqp://localhost:5672',
+      );
       this.channel = await this.connection.createChannel();
 
       // Declare exchange
@@ -74,7 +75,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       await this.channel.bindQueue(this.queueName, this.exchange, 'user.*');
 
       // Start consuming
-      await this.channel.consume(this.queueName, async (message) => {
+      await this.channel.consume(this.queueName, async (message: any) => {
         if (message) {
           try {
             const routingKey = message.fields.routingKey;

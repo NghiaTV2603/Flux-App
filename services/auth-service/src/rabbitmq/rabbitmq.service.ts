@@ -5,14 +5,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { connect } from 'amqplib';
-import type { Connection, Channel } from 'amqplib';
+import * as amqp from 'amqplib';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
-  private connection: Connection;
-  private channel: Channel;
+  private connection: amqp.ChannelModel; // Use any to avoid TypeScript issues
+  private channel: amqp.Channel;
   private readonly exchange = 'app.events';
 
   constructor(private readonly configService: ConfigService) {}
@@ -28,7 +27,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private async connect() {
     try {
       const rabbitmqUrl = this.configService.get<string>('rabbitmq.url');
-      this.connection = await connect(rabbitmqUrl || 'amqp://localhost:5672');
+      this.connection = await amqp.connect(
+        rabbitmqUrl || 'amqp://localhost:5672',
+      );
       this.channel = await this.connection.createChannel();
 
       // Declare exchange
