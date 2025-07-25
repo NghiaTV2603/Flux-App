@@ -11,8 +11,8 @@ datasource db {
 }
 
 model UserProfile {
-  id           String    @id @default(uuid())
-  username     String    @unique
+  userId       String    @id // Use User's ID as primary key from auth-service
+  username     String    @unique // Keep for caching/performance, sync from auth-service
   avatar       String?   // URL to avatar image
   status       String    @default("offline") // online, offline, invisible, busy
   customStatus String?   // Custom status message

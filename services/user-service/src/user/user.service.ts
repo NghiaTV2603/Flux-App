@@ -6,9 +6,9 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getUserProfile(id: string) {
+  async getUserProfile(userId: string) {
     const profile = await this.prisma.userProfile.findUnique({
-      where: { id },
+      where: { userId },
     });
 
     if (!profile) {
@@ -18,9 +18,9 @@ export class UserService {
     return profile;
   }
 
-  async updateProfile(id: string, updateProfileDto: UpdateProfileDto) {
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto) {
     const existingProfile = await this.prisma.userProfile.findUnique({
-      where: { id },
+      where: { userId },
     });
 
     if (!existingProfile) {
@@ -28,14 +28,14 @@ export class UserService {
     }
 
     return this.prisma.userProfile.update({
-      where: { id },
+      where: { userId },
       data: updateProfileDto,
     });
   }
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(userId: string, status: string) {
     const existingProfile = await this.prisma.userProfile.findUnique({
-      where: { id },
+      where: { userId },
     });
 
     if (!existingProfile) {
@@ -43,7 +43,7 @@ export class UserService {
     }
 
     return this.prisma.userProfile.update({
-      where: { id },
+      where: { userId },
       data: { status },
     });
   }
@@ -57,7 +57,7 @@ export class UserService {
         ],
       },
       select: {
-        id: true,
+        userId: true,
         username: true,
         displayName: true,
         avatar: true,
@@ -67,12 +67,29 @@ export class UserService {
     });
   }
 
-  async createProfile(data: { id: string; username: string }) {
+  // Method to create profile when user registers (called from auth-service)
+  async createProfile(data: { userId: string; username: string }) {
     return this.prisma.userProfile.create({
       data: {
-        id: data.id,
+        userId: data.userId,
         username: data.username,
       },
+    });
+  }
+
+  // Method to check if profile exists
+  async profileExists(userId: string): Promise<boolean> {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+    });
+    return !!profile;
+  }
+
+  // Method to update username when changed in auth-service
+  async syncUsername(userId: string, username: string) {
+    return this.prisma.userProfile.update({
+      where: { userId },
+      data: { username },
     });
   }
 }
