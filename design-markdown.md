@@ -8,18 +8,11 @@
 - [Database](#database)
 - [Services](#services)
   - [Auth Service](#auth-service)
-  - [User Service](#user-service)
-  - [Server Service](#server-service)
-  - [Channel Service](#channel-service)
-  - [Channel Message Service](#channel-message-service)
-  - [Friend Service](#friend-service)
-  - [Direct Message Service](#direct-message-service)
-  - [File Service](#file-service)
-  - [Role Service](#role-service)
-  - [Voice Service](#voice-service)
-  - [WebSocket Service](#websocket-service)
-  - [Notification Service](#notification-service)
-  - [Security Service](#security-service)
+  - [User & Social Service](#user--social-service)
+  - [Server & Channel Service](#server--channel-service)
+  - [Message Service](#message-service)
+  - [Media & File Service](#media--file-service)
+  - [Realtime Service](#realtime-service)
   - [Gateway API](#gateway-api)
 - [System Architecture](#system-architecture)
 - [Message Queue Design](#message-queue-design)
@@ -30,24 +23,17 @@
 
 ## Chức năng chính (MVP)
 
-### Các service
+### Các service (Tối ưu hóa - 6 services)
 
-| Service                 | Mô tả                                                       |
-| ----------------------- | ----------------------------------------------------------- |
-| Auth Service            | Quản lý đăng nhập, đăng ký, OAuth, quên mật khẩu, JWT       |
-| User Service            | Lưu trữ thông tin user, avatar, trạng thái online           |
-| Server Service          | Tạo server, lưu thông tin server, quản lý thành viên        |
-| Channel Service         | Tạo channel text/voice, phân loại public/private, quyền hạn |
-| Channel Message Service | Quản lý tin nhắn trong các channel                          |
-| Friend Service          | Kết bạn, chấp nhận, block, unfriend                         |
-| Direct Message Service  | Quản lý tin nhắn riêng giữa các user                        |
-| File Service            | Quản lý upload, lưu trữ và phân phối file/media             |
-| Role Service            | Quản lý role và quyền hạn trong server                      |
-| Voice Service           | Quản lý kết nối voice, session voice chat                   |
-| WebSocket Service       | Quản lý kết nối websocket cho real-time communication       |
-| Notification Service    | Gửi email, push notification                                |
-| Security Service        | Rate limiting, chống spam, báo cáo vi phạm                  |
-| Gateway API             | API Gateway                                                 |
+| Service                  | Mô tả                                                 |
+| ------------------------ | ----------------------------------------------------- |
+| Auth Service             | Quản lý đăng nhập, đăng ký, OAuth, quên mật khẩu, JWT |
+| User & Social Service    | User profiles, friends, blocking, social features     |
+| Server & Channel Service | Servers, channels, roles, permissions, members        |
+| Message Service          | Tất cả tin nhắn (channel + DM), threads, reactions    |
+| Media & File Service     | Upload, lưu trữ, CDN, file sharing, avatars           |
+| Realtime Service         | WebSocket, voice calls, screen share, notifications   |
+| Gateway API              | API Gateway với rate limiting và security             |
 
 ## Core Features
 
@@ -58,51 +44,131 @@
 - File Management
 - Voice Chat
 
-### Các tính năng cơ bản
+### Các tính năng cơ bản (Discord-like)
 
-- Đăng ký tài khoản
-- Đăng nhập tài khoản
-- Đăng nhập bằng OAuth (Google, Facebook,...)
-- Quên mật khẩu (gửi email reset)
-- Quản lý thông tin user (avatar, username,...)
-- Tạo server (group/chat room lớn)
-- Mời bạn bè vào server bằng mã code
-- Tạo các channel trong server (Text Channel / Voice Channel)
-- Channel phân loại public / private
-- Chỉ user có quyền mới truy cập được channel private
-- Kết bạn giữa các user
-- Chat trực tiếp giữa 2 user (Direct Message)
-- Có thể block / unfriend
-- Upload và chia sẻ file/media
-- Voice chat trong voice channel
-- Real-time thông báo và cập nhật
+**Authentication & User Management:**
+
+- Đăng ký/đăng nhập tài khoản với email/password
+- Đăng nhập OAuth (Google, Discord, GitHub)
+- User profiles với avatar, bio, status
+- Online/offline/busy/away status
+- Custom status messages
+
+**Social Features:**
+
+- Gửi/nhận friend requests
+- Friends list với online status
+- Block/unblock users
+- Direct messages giữa friends
+
+**Server & Channel Management:**
+
+- Tạo servers (Discord guilds)
+- Invite system với invite codes/links
+- Text channels và Voice channels
+- Channel categories để organize
+- Private channels với permissions
+- Role-based permissions system
+- Channel-specific permissions
+
+**Messaging & Communication:**
+
+- Real-time text chat trong channels
+- Direct messages
+- Message reactions (emoji)
+- Message threads/replies
+- File/image sharing
+- @mentions (users, roles, everyone)
+- Message history và search
+
+**Voice & Video:**
+
+- Voice calls trong voice channels
+- Group voice calls (multiple users)
+- Screen sharing trong voice calls
+- Push-to-talk và voice activation
+- Mute/deafen controls
+
+**Real-time Features:**
+
+- Live typing indicators
+- Message delivery status
+- Real-time member list updates
+- Voice channel member indicators
 
 ## Extended Features
 
-- Phân quyền chi tiết trong server
-- Emoji và reaction
-- Đánh dấu đã đọc/chưa đọc
-- Nhắc đến người dùng (@mentions)
-- Chống spam và quản lý vi phạm
+### Discord-like Permissions System
+
+**Server Permissions (bitfield):**
+
+- `ADMINISTRATOR` - Full admin access
+- `MANAGE_GUILD` - Manage server settings
+- `MANAGE_ROLES` - Create/edit/delete roles
+- `MANAGE_CHANNELS` - Create/edit/delete channels
+- `KICK_MEMBERS` - Kick members from server
+- `BAN_MEMBERS` - Ban members from server
+- `CREATE_INSTANT_INVITE` - Create invite links
+- `CHANGE_NICKNAME` - Change own nickname
+- `MANAGE_NICKNAMES` - Manage others' nicknames
+- `MANAGE_EMOJIS` - Add/remove custom emojis
+- `VIEW_AUDIT_LOG` - View server audit logs
+
+**Channel Permissions (bitfield):**
+
+- `VIEW_CHANNEL` - See the channel
+- `SEND_MESSAGES` - Send messages in text channels
+- `EMBED_LINKS` - Embed links in messages
+- `ATTACH_FILES` - Upload files and media
+- `READ_MESSAGE_HISTORY` - Read message history
+- `MENTION_EVERYONE` - Use @everyone and @here
+- `ADD_REACTIONS` - Add emoji reactions
+- `CONNECT` - Connect to voice channels
+- `SPEAK` - Speak in voice channels
+- `MUTE_MEMBERS` - Mute members in voice
+- `DEAFEN_MEMBERS` - Deafen members in voice
+- `MOVE_MEMBERS` - Move members between voice channels
+- `USE_VOICE_ACTIVITY` - Use voice activity detection
+- `PRIORITY_SPEAKER` - Priority speaker in voice
+- `STREAM` - Screen share in voice channels
+
+**Permission Hierarchy:**
+
+1. Server Owner - All permissions
+2. Administrator role - Bypasses all channel permissions
+3. Role permissions - Combined with bitwise OR
+4. Channel overwrites - Can deny role permissions
+5. User overwrites - Highest priority, can override roles
+
+**Permission Calculation:**
+
+```
+final_permissions = base_permissions | role_permissions | channel_allows & ~channel_denies
+```
+
+### Advanced Features
+
+- Message threads và forum channels
+- Emoji reactions với custom emojis
+- Message pinning trong channels
+- Slowmode để giới hạn spam
+- NSFW channel restrictions
+- Audit logs cho admin actions
+- Webhook integrations
+- Bot permissions và OAuth scopes
 
 ## Database
 
 ### Database cho từng Service
 
-| Service                 | Database đề xuất                 |
-| ----------------------- | -------------------------------- |
-| Auth Service            | PostgreSQL                       |
-| User Service            | PostgreSQL                       |
-| Server Service          | PostgreSQL                       |
-| Channel Service         | PostgreSQL                       |
-| Channel Message Service | MongoDB                          |
-| Friend Service          | PostgreSQL                       |
-| Direct Message          | MongoDB                          |
-| File Service            | PostgreSQL + Object Storage (S3) |
-| Role Service            | PostgreSQL                       |
-| Voice Service           | Redis + PostgreSQL               |
-| Notification Service    | MongoDB                          |
-| Security Service        | Redis + PostgreSQL               |
+| Service                  | Database đề xuất                 |
+| ------------------------ | -------------------------------- |
+| Auth Service             | PostgreSQL                       |
+| User & Social Service    | PostgreSQL + Redis (cache)       |
+| Server & Channel Service | PostgreSQL + Redis (cache)       |
+| Message Service          | MongoDB + Elasticsearch (search) |
+| Media & File Service     | PostgreSQL + Object Storage (S3) |
+| Realtime Service         | Redis + PostgreSQL               |
 
 ## Services
 
@@ -571,29 +637,48 @@
 - Logging
 - Circuit breaking
 
-## System Architecture
+## System Architecture (Optimized)
 
 ```
-+-------------+
-| Client App  | Web / Mobile App
-+------+------+
-       |
-+------v------+
-| API Gateway | Gateway / Load Balancer / Authentication
-+------+------+
-       |
-+------+------+------+------+------+------+------+------+
-|      |      |      |      |      |      |      |      |
-v      v      v      v      v      v      v      v      v
-AuthSvc UserSvc ServerSvc ChannelSvc MsgSvc FileSvc RoleSvc VoiceSvc
-|
-+------+------+------+                        |
-|      |      |      |                        |
-v      v      v      v                        v
-FriendSvc DMSvc SecSvc WebSocketSvc           NotifySvc
-                                              |
-                                              v
+┌─────────────────────────────────────────┐
+│              Client Apps                │
+│        (Web / Mobile / Desktop)         │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│             Gateway API                 │
+│    (Authentication, Rate Limiting,      │
+│     Load Balancing, Request Routing)    │
+└─────────────────┬───────────────────────┘
+                  │
+    ┌─────────────┼─────────────┐
+    │             │             │
+┌───▼───┐    ┌────▼────┐   ┌────▼────┐
+│ Auth  │    │ User &  │   │Server & │
+│Service│    │ Social  │   │Channel  │
+│       │    │Service  │   │Service  │
+└───────┘    └─────────┘   └─────────┘
+    │             │             │
+┌───▼───┐    ┌────▼────┐   ┌────▼────┐
+│Media &│    │Message  │   │Realtime │
+│ File  │    │Service  │   │Service  │
+│Service│    │         │   │         │
+└───────┘    └─────────┘   └─────────┘
+
+Database Layer:
+┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+│PostgreSQL│ │ MongoDB │ │  Redis  │ │   S3    │
+│ (ACID)   │ │(Messages)│ │(Cache)  │ │(Files)  │
+└─────────┘ └─────────┘ └─────────┘ └─────────┘
 ```
+
+**Kiến trúc mới (6 services) vs Cũ (13 services):**
+
+- ✅ Giảm 54% số lượng services
+- ✅ Giảm network latency và complexity
+- ✅ Dễ maintain và debug
+- ✅ Vẫn đảm bảo separation of concerns
+- ✅ Independent scaling và technology choices
 
 ## Message Queue Design
 

@@ -75,6 +75,9 @@ if [ "$1" = "dev" ]; then
     echo "📦 Installing gateway-api dependencies..."
     cd services/gateway-api && npm install && cd ../..
     
+    echo "📦 Installing server-service dependencies..."
+    cd services/server-service && npm install && cd ../..
+    
     echo "🗄️ Running database migrations..."
     
     # Auth service migrations
@@ -97,17 +100,29 @@ if [ "$1" = "dev" ]; then
     npx prisma db push --force-reset
     cd ../..
     
+    # Server service migrations
+    echo "🔄 Running server-service migrations..."
+    cd services/server-service
+    if [ -f ".env" ]; then
+        export $(cat .env | grep -v '^#' | xargs)
+    fi
+    npx prisma generate
+    npx prisma db push --force-reset
+    cd ../..
+    
     echo "🎯 Starting services in development mode..."
     echo ""
     echo "Services will be available at:"
     echo "🌐 Gateway API: http://localhost:3000"
     echo "🔐 Auth Service: http://localhost:3001"
     echo "👤 User Service: http://localhost:3002"
+    echo "🏢 Server Service: http://localhost:3003"
     echo "🐰 RabbitMQ Management: http://localhost:15672"
     echo ""
     echo "To start services manually, run these commands in separate terminals:"
     echo "📁 cd services/auth-service && npm run start:dev"
     echo "📁 cd services/user-service && npm run start:dev"
+    echo "📁 cd services/server-service && npm run start:dev"
     echo "📁 cd services/gateway-api && npm run start:dev"
     echo ""
     echo "🔍 To check database connection:"
@@ -124,6 +139,7 @@ else
     echo "🌐 Gateway API: http://localhost:3000"
     echo "🔐 Auth Service: http://localhost:3001"
     echo "👤 User Service: http://localhost:3002"
+    echo "🏢 Server Service: http://localhost:3003"
     echo "🐰 RabbitMQ Management: http://localhost:15672"
     echo ""
     echo "📋 To view logs: docker-compose logs -f"

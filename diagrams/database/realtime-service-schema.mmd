@@ -1,0 +1,127 @@
+erDiagram
+    %% REALTIME SERVICE (merged WebSocket + Voice + Notification services)
+    
+    %% PostgreSQL Tables for persistent data
+    VOICE_SESSIONS {
+        uuid id PK
+        uuid channel_id FK "Voice channel ID"
+        uuid server_id FK "Server ID"
+        varchar session_token UK "Unique session identifier"
+        integer max_participants "Maximum users allowed"
+        integer current_participants "Current user count"
+        json settings "Voice settings (bitrate, codec, etc)"
+        enum status "active|paused|ended"
+        timestamp started_at
+        timestamp ended_at
+        uuid created_by FK "User who started session"
+    }
+    
+    VOICE_PARTICIPANTS {
+        uuid id PK
+        uuid session_id FK "References voice_sessions.id"
+        uuid user_id FK "Participant user ID"
+        varchar username "Denormalized username"
+        boolean is_speaking "Currently speaking"
+        boolean is_muted "User muted themselves"
+        boolean is_deafened "User deafened themselves"
+        boolean is_video_enabled "Video/screen sharing enabled"
+        boolean is_screen_sharing "Screen sharing active"
+        json audio_settings "Audio settings (gain, noise reduction)"
+        timestamp joined_at
+        timestamp left_at
+        integer total_speak_time "Seconds spent speaking"
+    }
+    
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK "Target user ID"
+        enum type "friend_request|message|mention|call|system"
+        varchar title "Notification title"
+        text content "Notification content"
+        json data "Additional notification data"
+        uuid reference_id "ID of related object (message, user, etc)"
+        varchar reference_type "Type of referenced object"
+        boolean is_read "Read status"
+        boolean is_pushed "Sent as push notification"
+        boolean is_emailed "Sent as email"
+        timestamp created_at
+        timestamp read_at
+        timestamp expires_at
+    }
+    
+    NOTIFICATION_SETTINGS {
+        uuid id PK
+        uuid user_id FK "User settings owner"
+        enum notification_type "friend_request|message|mention|call|system"
+        boolean enabled "Notification enabled"
+        boolean push_enabled "Push notification enabled"
+        boolean email_enabled "Email notification enabled"
+        boolean sound_enabled "Sound notification enabled"
+        json schedule "Quiet hours and scheduling"
+        json keywords "Keywords to watch for mentions"
+        timestamp updated_at
+    }
+    
+    %% Redis Tables (in-memory real-time data)
+    USER_PRESENCE_REDIS {
+        varchar key "user:{user_id}:presence"
+        enum status "online|offline|busy|away|invisible"
+        varchar custom_status "Custom status message"
+        json activity "Current activity"
+        timestamp last_seen "Last activity timestamp"
+        json connections "Active WebSocket connections"
+        integer ttl "Time to live (seconds)"
+    }
+    
+    WEBSOCKET_CONNECTIONS_REDIS {
+        varchar key "ws:{connection_id}"
+        uuid user_id "Connected user ID"
+        varchar session_id "Session identifier"
+        json channels "Subscribed channels/rooms"
+        timestamp connected_at
+        timestamp last_heartbeat
+        json metadata "Connection metadata (IP, user-agent)"
+        integer ttl "Connection TTL"
+    }
+    
+    VOICE_STATES_REDIS {
+        varchar key "voice:{channel_id}:users"
+        json participants "Array of current voice participants"
+        json speaking_users "Currently speaking users"
+        json session_data "Voice session metadata"
+        integer ttl "Voice state TTL"
+    }
+    
+    %% Relationships
+    VOICE_SESSIONS ||--o{ VOICE_PARTICIPANTS : "has"
+    NOTIFICATIONS ||--|| NOTIFICATION_SETTINGS : "configured_by"
+    USER_PRESENCE_REDIS ||--|| WEBSOCKET_CONNECTIONS_REDIS : "maintained_by"
+    VOICE_SESSIONS ||--|| VOICE_STATES_REDIS : "cached_as"
+    
+    %% PostgreSQL Indexes
+    VOICE_SESSIONS {
+        index idx_voice_sessions_channel "channel_id, status, started_at"
+        index idx_voice_sessions_server "server_id, status"
+        index idx_voice_sessions_creator "created_by, started_at"
+        index idx_voice_sessions_active "status, started_at"
+    }
+    
+    VOICE_PARTICIPANTS {
+        unique_constraint session_user "session_id, user_id, left_at"
+        index idx_voice_participants_session "session_id, joined_at"
+        index idx_voice_participants_user "user_id, joined_at"
+        index idx_voice_participants_active "left_at IS NULL, session_id"
+    }
+    
+    NOTIFICATIONS {
+        index idx_notifications_user "user_id, is_read, created_at desc"
+        index idx_notifications_type "type, created_at desc"
+        index idx_notifications_reference "reference_type, reference_id"
+        index idx_notifications_unread "user_id, is_read, created_at"
+        index idx_notifications_expires "expires_at"
+    }
+    
+    NOTIFICATION_SETTINGS {
+        unique_constraint user_type "user_id, notification_type"
+        index idx_notification_settings_user "user_id"
+    } 

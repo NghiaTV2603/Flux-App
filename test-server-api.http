@@ -1,0 +1,124 @@
+### Test Server Service API
+
+### 1. Register a new user first (for testing)
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "username": "testuser",
+  "password": "password123"
+}
+
+### 2. Login to get token
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+
+### Store the token from login response
+@token = {{login.response.body.accessToken}}
+
+### 3. Create a new server
+POST http://localhost:3000/servers
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "My Awesome Server",
+  "description": "This is a test server for development",
+  "icon": "https://example.com/server-icon.png"
+}
+
+### Store server ID from response
+@serverId = {{createServer.response.body.id}}
+
+### 4. Get user's servers
+GET http://localhost:3000/servers/my-servers
+Authorization: Bearer {{token}}
+
+### 5. Get server by ID
+GET http://localhost:3000/servers/{{serverId}}
+Authorization: Bearer {{token}}
+
+### 6. Update server
+PATCH http://localhost:3000/servers/{{serverId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Server Name",
+  "description": "Updated description for the server"
+}
+
+### 7. Generate new invite code
+POST http://localhost:3000/servers/{{serverId}}/invite
+Authorization: Bearer {{token}}
+
+### Store invite code from response
+@inviteCode = {{generateInvite.response.body.inviteCode}}
+
+### 8. Create another user to test joining
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser2@example.com",
+  "username": "testuser2",
+  "password": "password123"
+}
+
+### 9. Login as second user
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser2@example.com",
+  "password": "password123"
+}
+
+### Store second user token
+@token2 = {{login2.response.body.accessToken}}
+
+### 10. Join server using invite code (as second user)
+POST http://localhost:3000/servers/join
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "inviteCode": "{{inviteCode}}"
+}
+
+### 11. Get server members (as owner)
+GET http://localhost:3000/servers/{{serverId}}/members
+Authorization: Bearer {{token}}
+
+### Store member ID from response (second user)
+@memberId = {{getMembers.response.body.1.id}}
+
+### 12. Update member role (promote to admin)
+PATCH http://localhost:3000/servers/{{serverId}}/members/{{memberId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "role": "admin",
+  "nickname": "Admin User"
+}
+
+### 13. Remove member from server
+DELETE http://localhost:3000/servers/{{serverId}}/members/{{memberId}}
+Authorization: Bearer {{token}}
+
+### 14. Delete server
+DELETE http://localhost:3000/servers/{{serverId}}
+Authorization: Bearer {{token}}
+
+### 15. Health check for server service (direct)
+GET http://localhost:3003/health
+
+### 16. Health check through gateway
+GET http://localhost:3000/health

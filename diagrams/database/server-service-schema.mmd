@@ -1,15 +1,20 @@
 erDiagram
+    %% SERVER & CHANNEL SERVICE (merged Server + Channel + Role services)
     SERVERS {
         uuid id PK
         varchar name "Server name"
         text description "Server description"
         text icon_url "Server icon URL"
         text banner_url "Server banner URL"
+        text splash_url "Server splash image"
         uuid owner_id FK "References user_profiles.user_id"
         varchar invite_code UK "Unique invite code"
         boolean is_public "Public server discovery"
         integer max_members "Maximum member limit"
-        jsonb features "Server boost features array"
+        enum verification_level "none|low|medium|high|highest"
+        enum content_filter "disabled|members_without_roles|all_members"
+        json features "Server boost features array"
+        json emojis "Custom emoji definitions"
         timestamp created_at
         timestamp updated_at
         integer version "Optimistic locking"
@@ -33,13 +38,17 @@ erDiagram
         uuid id PK
         uuid server_id FK
         varchar name "Channel name"
-        text description "Channel description"
-        enum type "text|voice|category|announcement"
+        text topic "Channel topic/description"
+        enum type "text|voice|category|announcement|stage|forum"
         uuid parent_id FK "Parent category (self-reference)"
         integer position "Channel order position"
         boolean is_private "Private channel access"
-        jsonb permissions "Channel-specific permissions"
-        jsonb settings "Channel settings (rate limit, etc)"
+        boolean is_nsfw "Age-restricted content"
+        integer slowmode_delay "Seconds between messages"
+        integer user_limit "Voice channel user limit"
+        integer bitrate "Voice channel bitrate"
+        json permissions "Channel-specific permission overwrites"
+        json settings "Additional channel settings"
         timestamp created_at
         timestamp updated_at
     }
@@ -49,11 +58,21 @@ erDiagram
         uuid server_id FK
         varchar name "Role name"
         varchar color "Hex color code"
-        integer position "Role hierarchy position"
-        jsonb permissions "Role permissions object"
+        integer position "Role hierarchy position (higher = more powerful)"
+        bigint permissions "Role permissions bitfield"
         boolean is_hoisted "Show separately in member list"
         boolean is_mentionable "Can be @mentioned"
+        boolean is_managed "Managed by bot/integration"
         timestamp created_at
+        timestamp updated_at
+    }
+    
+    MEMBER_ROLES {
+        uuid id PK
+        uuid member_id FK "References server_members.id"
+        uuid role_id FK "References server_roles.id"
+        timestamp assigned_at
+        uuid assigned_by FK "User who assigned role"
     }
     
     CHANNEL_MEMBERS {
@@ -61,8 +80,23 @@ erDiagram
         uuid channel_id FK
         uuid user_id FK
         timestamp last_read_at "Last message read timestamp"
-        jsonb permissions "User-specific channel permissions"
+        bigint permissions "User-specific channel permission overwrites"
         timestamp joined_at
+        timestamp last_viewed_at
+    }
+    
+    INVITES {
+        uuid id PK
+        varchar code UK "Invite code"
+        uuid server_id FK
+        uuid channel_id FK "Channel this invite points to"
+        uuid creator_id FK "User who created invite"
+        integer max_uses "0 = unlimited"
+        integer current_uses "Current usage count"
+        integer max_age "Seconds until expiry, 0 = never"
+        boolean temporary "Grant temporary membership"
+        timestamp created_at
+        timestamp expires_at
     }
     
     %% Read Models
@@ -95,9 +129,12 @@ erDiagram
     SERVERS ||--o{ SERVER_MEMBERS : "has"
     SERVERS ||--o{ CHANNELS : "contains"
     SERVERS ||--o{ SERVER_ROLES : "defines"
+    SERVERS ||--o{ INVITES : "generates"
     CHANNELS ||--o{ CHANNEL_MEMBERS : "has"
     CHANNELS ||--o{ CHANNELS : "parent_child"
-    SERVER_MEMBERS }o--o{ SERVER_ROLES : "assigned"
+    CHANNELS ||--o{ INVITES : "targets"
+    SERVER_MEMBERS ||--o{ MEMBER_ROLES : "assigned"
+    SERVER_ROLES ||--o{ MEMBER_ROLES : "grants"
     
     %% Projections
     SERVERS ||--|| SERVER_DIRECTORY : "projected_to"
@@ -126,5 +163,19 @@ erDiagram
     
     SERVER_ROLES {
         unique_constraint server_name "server_id, name"
-        index idx_roles_server_position "server_id, position"
+        index idx_roles_server_position "server_id, position desc"
+        index idx_roles_mentionable "is_mentionable, server_id"
+    }
+    
+    MEMBER_ROLES {
+        unique_constraint member_role "member_id, role_id"
+        index idx_member_roles_member "member_id"
+        index idx_member_roles_role "role_id"
+    }
+    
+    INVITES {
+        index idx_invites_server "server_id, created_at"
+        index idx_invites_creator "creator_id, created_at"
+        index idx_invites_expires "expires_at"
+        index idx_invites_active "expires_at, max_uses, current_uses"
     } 

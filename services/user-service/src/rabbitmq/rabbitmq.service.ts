@@ -11,7 +11,7 @@ import { UserService } from '../user/user.service';
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
-  private connection: amqp.ChannelModel; // Use any to avoid TypeScript issues
+  private connection: amqp.ChannelModel;
   private channel: amqp.Channel;
   private readonly exchange = 'app.events';
   private readonly queueName = 'user.service.queue';
@@ -71,10 +71,8 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   private async setupConsumers() {
     try {
-      // Bind queue to exchange for user events
       await this.channel.bindQueue(this.queueName, this.exchange, 'user.*');
 
-      // Start consuming
       await this.channel.consume(this.queueName, async (message: any) => {
         if (message) {
           try {
@@ -83,7 +81,6 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
             this.logger.log(`Received event: ${routingKey}`, data);
 
-            // Handle different event types
             switch (routingKey) {
               case 'user.created':
                 await this.handleUserCreated(data);
@@ -95,12 +92,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
                 this.logger.warn(`Unhandled event type: ${routingKey}`);
             }
 
-            // Acknowledge the message
             this.channel.ack(message);
           } catch (error) {
             this.logger.error('Error processing message:', error);
 
-            // Reject and don't requeue to prevent infinite loops
             this.channel.nack(message, false, false);
           }
         }
@@ -121,7 +116,6 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     try {
       this.logger.log('Processing user.created event', data);
 
-      // Check if profile already exists
       const exists = await this.userService.profileExists(data.userId);
       if (!exists) {
         await this.userService.createProfile({

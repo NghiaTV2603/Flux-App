@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Server {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?  // URL to icon
+  ownerId     String   // FK to User
+  inviteCode  String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members ServerMember[]
+
+  @@map("servers")
+}
+
+model ServerMember {
+  id       String @id @default(uuid())
+  serverId String
+  userId   String // FK to User
+  nickname String?
+  role     String @default("member") // owner / admin / member
+  joinedAt DateTime @default(now())
+
+  // Relations
+  server Server @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, userId])
+  @@map("server_members")
+}

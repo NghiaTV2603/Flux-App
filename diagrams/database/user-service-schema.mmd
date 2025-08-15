@@ -1,17 +1,22 @@
 erDiagram
+    %% USER & SOCIAL SERVICE (merged User + Friend services)
     USER_PROFILES {
         uuid user_id PK "Same as auth service user ID"
         varchar username UK "Synced from auth service"
         varchar email "Synced from auth service"
         varchar display_name "User's display name"
         text avatar_url "Avatar image URL"
+        text banner_url "Profile banner URL"
         text bio "User biography"
         enum status "online|offline|busy|away|invisible"
         varchar custom_status "Custom status message"
+        json activity "Current activity (playing, listening, etc)"
         varchar timezone "User timezone"
         varchar language "Preferred language"
+        boolean show_activity "Show current activity to others"
         timestamp created_at
         timestamp updated_at
+        timestamp last_seen_at "Last activity timestamp"
         integer version "Optimistic locking"
         tsvector search_vector "Full-text search vector"
     }
@@ -28,23 +33,37 @@ erDiagram
         timestamp updated_at
     }
     
-    USER_ACTIVITIES {
+    %% SOCIAL FEATURES (merged from Friend Service)
+    FRIENDSHIPS {
         uuid id PK
-        uuid user_id FK
-        varchar activity_type "playing|listening|watching|streaming"
-        varchar name "Activity name"
-        text details "Activity details"
-        varchar state "Current state"
-        jsonb timestamps "start, end times"
+        uuid requester_id FK "User who sent friend request"
+        uuid addressee_id FK "User who received request"
+        enum status "pending|accepted|declined|blocked"
+        text message "Optional friend request message"
+        timestamp created_at
+        timestamp updated_at
+        timestamp responded_at "When request was accepted/declined"
+    }
+    
+    BLOCKS {
+        uuid id PK
+        uuid blocker_id FK "User who blocked"
+        uuid blocked_id FK "User who was blocked"
+        text reason "Optional block reason"
         timestamp created_at
     }
     
-    USER_ANALYTICS {
+    USER_ACTIVITIES {
         uuid id PK
         uuid user_id FK
-        varchar event_type "login|logout|message_sent|etc"
-        jsonb event_data "Event metadata"
-        timestamp timestamp "Event timestamp"
+        varchar activity_type "playing|listening|watching|streaming|custom"
+        varchar name "Activity name"
+        text details "Activity details"
+        varchar state "Current state"
+        json timestamps "start, end times"
+        json metadata "Additional activity data"
+        timestamp created_at
+        timestamp expires_at "Activity expiration"
     }
     
     %% Read Models (Materialized Views)
@@ -62,11 +81,26 @@ erDiagram
         timestamp updated_at
     }
     
+    %% FRIEND CACHE (for performance)
+    FRIEND_LISTS_CACHE {
+        uuid user_id PK
+        uuid friend_id FK
+        varchar friend_username "Denormalized"
+        varchar friend_display_name "Denormalized"
+        text friend_avatar_url "Denormalized"
+        enum friend_status "online|offline|busy|away|invisible"
+        enum friendship_status "accepted|pending|blocked"
+        timestamp friendship_created_at
+        timestamp last_updated
+    }
+    
     %% Relationships
     USER_PROFILES ||--|| USER_SETTINGS : "has"
     USER_PROFILES ||--o{ USER_ACTIVITIES : "has"
-    USER_PROFILES ||--o{ USER_ANALYTICS : "generates"
+    USER_PROFILES ||--o{ FRIENDSHIPS : "requests/receives"
+    USER_PROFILES ||--o{ BLOCKS : "blocks/blocked_by"
     USER_PROFILES ||--|| USER_DIRECTORY : "projected_to"
+    FRIENDSHIPS ||--|| FRIEND_LISTS_CACHE : "cached_as"
     
     %% Indexes
     USER_PROFILES {
@@ -81,7 +115,20 @@ erDiagram
         index idx_activities_type "activity_type, created_at"
     }
     
-    USER_ANALYTICS {
-        index idx_analytics_user_event "user_id, event_type, timestamp"
-        partition_by timestamp "Monthly partitions"
+    FRIENDSHIPS {
+        unique_constraint requester_addressee "requester_id, addressee_id"
+        index idx_friendships_requester "requester_id, status"
+        index idx_friendships_addressee "addressee_id, status"
+        index idx_friendships_status "status, created_at"
+    }
+    
+    BLOCKS {
+        unique_constraint blocker_blocked "blocker_id, blocked_id"
+        index idx_blocks_blocker "blocker_id, created_at"
+        index idx_blocks_blocked "blocked_id, created_at"
+    }
+    
+    FRIEND_LISTS_CACHE {
+        index idx_friend_cache_user "user_id, friendship_status"
+        index idx_friend_cache_status "friend_status, last_updated"
     } 

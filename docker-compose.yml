@@ -146,6 +146,37 @@ services:
       retries: 3
       start_period: 60s
 
+  # Server Service
+  server-service:
+    build:
+      context: ./services/server-service
+      dockerfile: Dockerfile
+    container_name: flux-server-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_server_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
+      - PORT=3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - flux-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   # Gateway API
   gateway-api:
     build:
@@ -158,6 +189,7 @@ services:
       - NODE_ENV=production
       - AUTH_SERVICE_URL=http://auth-service:3000
       - USER_SERVICE_URL=http://user-service:3000
+      - SERVER_SERVICE_URL=http://server-service:3003
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - PORT=3000
@@ -165,6 +197,8 @@ services:
       auth-service:
         condition: service_healthy
       user-service:
+        condition: service_healthy
+      server-service:
         condition: service_healthy
       redis:
         condition: service_healthy

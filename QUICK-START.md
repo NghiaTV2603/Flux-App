@@ -44,10 +44,10 @@ git clone <repository-url>
 cd flux-project
 
 # Setup databases và dependencies
-./start-fixed.sh dev
+./start.sh dev
 ```
 
-### Bước 3: Chạy services (3 terminals)
+### Bước 3: Chạy services (4 terminals)
 
 ```bash
 # Terminal 1 - Auth Service
@@ -56,7 +56,10 @@ cd services/auth-service && npm run start:dev
 # Terminal 2 - User Service
 cd services/user-service && npm run start:dev
 
-# Terminal 3 - Gateway API
+# Terminal 3 - Server Service
+cd services/server-service && npm run start:dev
+
+# Terminal 4 - Gateway API
 cd services/gateway-api && npm run start:dev
 ```
 
@@ -65,6 +68,7 @@ cd services/gateway-api && npm run start:dev
 - **Gateway API**: http://localhost:3000
 - **Auth Service**: http://localhost:3001
 - **User Service**: http://localhost:3002
+- **Server Service**: http://localhost:3003
 - **RabbitMQ Management**: http://localhost:15672 (flux_user:flux_password)
 
 ## 🧪 Test APIs
@@ -77,6 +81,9 @@ curl -X POST http://localhost:3001/auth/register \
 
 # Test User Service
 curl http://localhost:3002/users/search/test
+
+# Test Server Service
+curl http://localhost:3003/health
 
 # Test Gateway API
 curl http://localhost:3000/health
@@ -92,6 +99,9 @@ docker-compose logs -f
 
 # Restart specific service
 docker-compose restart auth-service
+
+# Test specific service
+curl http://localhost:3003/health
 
 # Rebuild if code changed
 docker-compose up -d --build

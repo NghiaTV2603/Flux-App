@@ -1,0 +1,41 @@
+### Quick Test Server Service (Dev Mode)
+### Chạy lệnh này trước: cd services/server-service && npm run start:dev
+
+### 1. Health check
+GET http://localhost:3003/health
+
+### 2. Test app endpoint
+GET http://localhost:3003/
+
+### 3. Test server endpoints (cần auth token)
+### Uncomment để test khi có auth service chạy
+
+# ### Register user first
+# POST http://localhost:3001/auth/register
+# Content-Type: application/json
+
+# {
+#   "email": "testuser@example.com",
+#   "username": "testuser",
+#   "password": "password123"
+# }
+
+# ### Login to get token
+# POST http://localhost:3001/auth/login
+# Content-Type: application/json
+
+# {
+#   "email": "testuser@example.com",
+#   "password": "password123"
+# }
+
+# ### Create server (replace {{token}} with actual token)
+# POST http://localhost:3003/servers
+# Content-Type: application/json
+# Authorization: Bearer {{token}}
+
+# {
+#   "name": "Test Server",
+#   "description": "A test server",
+#   "ownerId": "user-id-from-token"
+# }

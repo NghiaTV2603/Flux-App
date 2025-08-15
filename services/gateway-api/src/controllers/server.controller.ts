@@ -21,11 +21,28 @@ export class ServerController {
   @Post()
   @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000 }) // 5 servers per hour
   async createServer(@Body() createServerDto: any, @Request() req: any) {
+    const serverData = {
+      ...createServerDto,
+      ownerId: req.user.id,
+    };
+
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
       'server',
       '/servers',
-      createServerDto,
+      serverData,
+      config,
+    );
+    return response.data;
+  }
+
+  @Get('my-servers')
+  @RateLimit({ limit: 50, windowMs: 60 * 1000 }) // 50 requests per minute
+  async getUserServers(@Request() req: any) {
+    const config = this.httpClient.createConfigWithAuth(req.token);
+    const response = await this.httpClient.get(
+      'server',
+      `/servers/user/${req.user.id}`,
       config,
     );
     return response.data;
@@ -37,7 +54,7 @@ export class ServerController {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
       'server',
-      `/servers/${id}`,
+      `/servers/${id}?userId=${req.user.id}`,
       config,
     );
     return response.data;
@@ -53,7 +70,7 @@ export class ServerController {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
       'server',
-      `/servers/${id}`,
+      `/servers/${id}?userId=${req.user.id}`,
       updateDto,
       config,
     );
@@ -66,24 +83,25 @@ export class ServerController {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
       'server',
-      `/servers/${id}`,
+      `/servers/${id}?userId=${req.user.id}`,
       config,
     );
     return response.data;
   }
 
-  @Post(':id/join')
+  @Post('join')
   @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 joins per minute
-  async joinServer(
-    @Param('id') id: string,
-    @Body() joinDto: any,
-    @Request() req: any,
-  ) {
+  async joinServer(@Body() joinDto: any, @Request() req: any) {
+    const joinData = {
+      ...joinDto,
+      userId: req.user.id,
+    };
+
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
       'server',
-      `/servers/${id}/join`,
-      joinDto,
+      '/servers/join',
+      joinData,
       config,
     );
     return response.data;
@@ -95,7 +113,7 @@ export class ServerController {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
       'server',
-      `/servers/${id}/invite`,
+      `/servers/${id}/invite?userId=${req.user.id}`,
       {},
       config,
     );
@@ -108,41 +126,41 @@ export class ServerController {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
       'server',
-      `/servers/${id}/members`,
+      `/servers/${id}/members?userId=${req.user.id}`,
       config,
     );
     return response.data;
   }
 
-  @Patch(':id/members/:userId')
+  @Patch(':id/members/:memberId')
   @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 requests per minute
   async updateMember(
     @Param('id') id: string,
-    @Param('userId') userId: string,
+    @Param('memberId') memberId: string,
     @Body() updateDto: any,
     @Request() req: any,
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
       'server',
-      `/servers/${id}/members/${userId}`,
+      `/servers/${id}/members/${memberId}?userId=${req.user.id}`,
       updateDto,
       config,
     );
     return response.data;
   }
 
-  @Delete(':id/members/:userId')
+  @Delete(':id/members/:memberId')
   @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 kicks per minute
   async kickMember(
     @Param('id') id: string,
-    @Param('userId') userId: string,
+    @Param('memberId') memberId: string,
     @Request() req: any,
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
       'server',
-      `/servers/${id}/members/${userId}`,
+      `/servers/${id}/members/${memberId}?userId=${req.user.id}`,
       config,
     );
     return response.data;
