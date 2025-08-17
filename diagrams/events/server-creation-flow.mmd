@@ -1,0 +1,48 @@
+sequenceDiagram
+    participant U as User (Owner)
+    participant G as Gateway
+    participant SS as Server Service
+    participant MS as Message Service
+    participant RS as Realtime Service
+    participant MQ as RabbitMQ
+
+    Note over U,MQ: Server Creation & Channel Management Flow
+
+    %% Create Server
+    U->>G: POST /servers<br/>{name, description, icon}
+    G->>SS: Create server request
+    
+    SS->>SS: Create server record<br/>Set user as owner<br/>Generate invite code<br/>Create default "@everyone" role
+    
+    SS->>MQ: Publish server.created<br/>{serverId, name, ownerId, inviteCode}
+    Note right of MQ: Event: server.created<br/>Version: v1.0<br/>Routing Key: server.created
+    
+    %% Create Default Channels
+    SS->>SS: Create "general" text channel<br/>Create "General" voice channel<br/>Set default permissions
+    
+    SS->>MQ: Publish server.channel.created (text)<br/>{channelId, serverId, name: "general", type: "text"}
+    Note right of MQ: Event: server.channel.created<br/>Version: v1.0<br/>Routing Key: server.channel.created
+    
+    SS->>MQ: Publish server.channel.created (voice)<br/>{channelId, serverId, name: "General", type: "voice"}
+    Note right of MQ: Event: server.channel.created<br/>Version: v1.0<br/>Routing Key: server.channel.created
+    
+    SS->>G: Return server info<br/>{serverId, channels, roles}
+    G->>U: Server created successfully
+    
+    %% Initialize Message Storage
+    MQ->>MS: Consume server.channel.created (text)
+    MS->>MS: Initialize message collection<br/>for text channel<br/>Setup indexes for search
+    
+    MQ->>MS: Consume server.channel.created (voice)
+    MS->>MS: Setup voice session tracking<br/>for voice channel
+    
+    %% Setup Real-time Subscriptions
+    MQ->>RS: Consume server.created
+    RS->>RS: Setup real-time subscriptions<br/>for server events<br/>Initialize server room
+    
+    MQ->>RS: Consume server.channel.created
+    RS->>RS: Setup channel subscriptions<br/>Initialize channel rooms<br/>Prepare for member joins
+    
+    RS->>U: Send server creation confirmation<br/>Update user's server list
+    
+    Note over U,MQ: Server is ready for members to join

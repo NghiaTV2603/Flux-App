@@ -1,0 +1,119 @@
+graph TB
+    subgraph "Event Monitoring & Observability"
+        
+        subgraph "Metrics Collection"
+            PUB_METRICS["📊 Publishing Metrics<br/>• Events published/sec<br/>• Publish success rate<br/>• Publish latency<br/>• Queue depth"]
+            
+            CONS_METRICS["📈 Consumption Metrics<br/>• Events processed/sec<br/>• Processing duration<br/>• Success/failure rate<br/>• Retry count"]
+            
+            SYS_METRICS["⚙️ System Metrics<br/>• RabbitMQ connection count<br/>• Memory usage<br/>• CPU utilization<br/>• Network I/O"]
+        end
+        
+        subgraph "Distributed Tracing"
+            TRACE_ID["🔍 Trace ID<br/>correlationId tracks<br/>event flow across services"]
+            
+            SPAN_DATA["📝 Span Data<br/>• Service name<br/>• Operation name<br/>• Start/end time<br/>• Tags & logs"]
+            
+            JAEGER["🕸️ Jaeger/Zipkin<br/>• Trace visualization<br/>• Performance analysis<br/>• Dependency mapping"]
+        end
+        
+        subgraph "Logging Strategy"
+            STRUCT_LOGS["📋 Structured Logging<br/>• JSON format<br/>• Consistent fields<br/>• Log levels<br/>• Correlation IDs"]
+            
+            EVENT_LOGS["📄 Event Logs<br/>• Event published<br/>• Event consumed<br/>• Processing started/completed<br/>• Errors & retries"]
+            
+            CENTRALIZED["🗂️ Centralized Logging<br/>• ELK Stack<br/>• Log aggregation<br/>• Search & filtering<br/>• Dashboards"]
+        end
+        
+        subgraph "Health Monitoring"
+            HEALTH_CHECKS["🏥 Health Checks<br/>• RabbitMQ connectivity<br/>• Database connections<br/>• Service dependencies<br/>• Queue status"]
+            
+            CIRCUIT_BREAKER["⚡ Circuit Breaker<br/>• Failure threshold<br/>• Open/closed state<br/>• Recovery time<br/>• Fallback actions"]
+            
+            HEARTBEAT["💓 Heartbeat Events<br/>• Service alive signals<br/>• Performance metrics<br/>• Resource usage<br/>• Error rates"]
+        end
+        
+        subgraph "Alerting Rules"
+            ERROR_ALERTS["🚨 Error Alerts<br/>• High failure rate (>5%)<br/>• Queue backup (>1000 msgs)<br/>• Processing delays (>30s)<br/>• Dead letter accumulation"]
+            
+            PERF_ALERTS["⚠️ Performance Alerts<br/>• Slow processing (>10s avg)<br/>• High memory usage (>80%)<br/>• Connection pool exhaustion<br/>• Disk space low"]
+            
+            BUS_ALERTS["📢 Business Alerts<br/>• Critical event failures<br/>• User-facing errors<br/>• Data consistency issues<br/>• Security violations"]
+        end
+        
+        subgraph "Dashboard Views"
+            REAL_TIME["📺 Real-time Dashboard<br/>• Live event flow<br/>• Current queue status<br/>• Active connections<br/>• Error rates"]
+            
+            HISTORICAL["📊 Historical Dashboard<br/>• Event volume trends<br/>• Performance metrics<br/>• Error analysis<br/>• Capacity planning"]
+            
+            SERVICE_MAP["🗺️ Service Map<br/>• Event flow visualization<br/>• Service dependencies<br/>• Bottleneck identification<br/>• Impact analysis"]
+        end
+    end
+    
+    subgraph "Example Metrics & Alerts"
+        subgraph "Prometheus Metrics"
+            PROM_PUB["flux_events_published_total<br/>Labels: event_type, service, status"]
+            PROM_PROC["flux_events_processing_duration_seconds<br/>Labels: event_type, service, handler"]
+            PROM_RETRY["flux_events_retries_total<br/>Labels: event_type, retry_count"]
+            PROM_QUEUE["flux_queue_depth<br/>Labels: queue_name, service"]
+        end
+        
+        subgraph "Alert Examples"
+            ALERT_1["High Error Rate<br/>flux_events_published_total{status='failure'} / <br/>flux_events_published_total > 0.05"]
+            
+            ALERT_2["Queue Backup<br/>flux_queue_depth > 1000"]
+            
+            ALERT_3["Slow Processing<br/>histogram_quantile(0.95, <br/>flux_events_processing_duration_seconds) > 10"]
+        end
+    end
+    
+    %% Metrics relationships
+    PUB_METRICS --> PROM_PUB
+    CONS_METRICS --> PROM_PROC
+    CONS_METRICS --> PROM_RETRY
+    SYS_METRICS --> PROM_QUEUE
+    
+    %% Tracing flow
+    TRACE_ID --> SPAN_DATA
+    SPAN_DATA --> JAEGER
+    
+    %% Logging flow
+    STRUCT_LOGS --> EVENT_LOGS
+    EVENT_LOGS --> CENTRALIZED
+    
+    %% Health monitoring
+    HEALTH_CHECKS --> CIRCUIT_BREAKER
+    CIRCUIT_BREAKER --> HEARTBEAT
+    
+    %% Alerting
+    ERROR_ALERTS --> ALERT_1
+    PERF_ALERTS --> ALERT_2
+    PERF_ALERTS --> ALERT_3
+    
+    %% Dashboard connections
+    REAL_TIME --> PROM_PUB
+    REAL_TIME --> PROM_PROC
+    HISTORICAL --> CENTRALIZED
+    SERVICE_MAP --> JAEGER
+    
+    %% Cross-connections
+    PROM_PUB --> ERROR_ALERTS
+    PROM_QUEUE --> PERF_ALERTS
+    HEARTBEAT --> BUS_ALERTS
+    
+    %% Styling
+    classDef metricsClass fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef tracingClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef loggingClass fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef healthClass fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef alertClass fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+    classDef dashClass fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef exampleClass fill:#f5f5f5,stroke:#616161,stroke-width:2px
+    
+    class PUB_METRICS,CONS_METRICS,SYS_METRICS metricsClass
+    class TRACE_ID,SPAN_DATA,JAEGER tracingClass
+    class STRUCT_LOGS,EVENT_LOGS,CENTRALIZED loggingClass
+    class HEALTH_CHECKS,CIRCUIT_BREAKER,HEARTBEAT healthClass
+    class ERROR_ALERTS,PERF_ALERTS,BUS_ALERTS alertClass
+    class REAL_TIME,HISTORICAL,SERVICE_MAP dashClass
+    class PROM_PUB,PROM_PROC,PROM_RETRY,PROM_QUEUE,ALERT_1,ALERT_2,ALERT_3 exampleClass

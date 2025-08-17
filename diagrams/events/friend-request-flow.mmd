@@ -1,0 +1,55 @@
+sequenceDiagram
+    participant U1 as User 1 (Requester)
+    participant G as Gateway
+    participant US as User Service
+    participant MS as Message Service
+    participant RS as Realtime Service
+    participant U2 as User 2 (Receiver)
+    participant MQ as RabbitMQ
+
+    Note over U1,MQ: Friend Request & DM Flow
+
+    %% Send Friend Request
+    U1->>G: POST /friends/request<br/>{receiverId, message}
+    G->>US: Send friend request
+    
+    US->>US: Validate users exist<br/>Check not already friends<br/>Create friendship record
+    
+    US->>MQ: Publish social.friendRequest.sent<br/>{friendshipId, requesterId, receiverId, message}
+    Note right of MQ: Event: social.friendRequest.sent<br/>Version: v1.0<br/>Routing Key: social.friendRequest.sent
+    
+    US->>G: Return success
+    G->>U1: Friend request sent
+    
+    %% Notify Receiver
+    MQ->>RS: Consume social.friendRequest.sent
+    RS->>U2: Send real-time notification<br/>"New friend request from User1"
+    
+    RS->>MQ: Publish realtime.notification.created<br/>{userId: U2, type: "friend_request"}
+    Note right of MQ: Event: realtime.notification.created<br/>Version: v1.0<br/>Routing Key: realtime.notification.created
+    
+    %% Accept Friend Request
+    Note over U2,MQ: User 2 accepts the request
+    
+    U2->>G: POST /friends/accept<br/>{friendshipId}
+    G->>US: Accept friend request
+    
+    US->>US: Update friendship status<br/>to "accepted"
+    
+    US->>MQ: Publish social.friendRequest.accepted<br/>{friendshipId, requesterId, receiverId}
+    Note right of MQ: Event: social.friendRequest.accepted<br/>Version: v1.0<br/>Routing Key: social.friendRequest.accepted
+    
+    US->>G: Return success
+    G->>U2: Friend request accepted
+    
+    %% Enable DM Conversation
+    MQ->>MS: Consume social.friendRequest.accepted
+    MS->>MS: Create DM conversation<br/>Enable messaging between users
+    
+    %% Notify Both Users
+    MQ->>RS: Consume social.friendRequest.accepted
+    RS->>U1: Notify acceptance<br/>"User2 accepted your friend request"
+    RS->>U2: Update friend list<br/>Show User1 as friend
+    RS->>U1: Update friend list<br/>Show User2 as friend
+    
+    Note over U1,MQ: Users can now send direct messages to each other

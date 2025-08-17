@@ -1,0 +1,59 @@
+sequenceDiagram
+    participant U1 as Sender
+    participant G as Gateway
+    participant MS as Message Service
+    participant RS as Realtime Service
+    participant US as User Service
+    participant U2 as Receiver/Mentioned User
+    participant MQ as RabbitMQ
+
+    Note over U1,MQ: Message Sending & Real-time Communication Flow
+
+    %% Send Channel Message
+    U1->>G: POST /channels/:id/messages<br/>{content, mentions, attachments}
+    G->>MS: Send message request
+    
+    MS->>MS: Validate permissions<br/>Store message in MongoDB<br/>Process mentions & attachments<br/>Generate message ID
+    
+    MS->>MQ: Publish message.channel.sent<br/>{messageId, channelId, authorId, content, mentions}
+    Note right of MQ: Event: message.channel.sent<br/>Version: v1.0<br/>Routing Key: message.channel.sent
+    
+    MS->>G: Return message info<br/>{messageId, timestamp, status}
+    G->>U1: Message sent successfully
+    
+    %% Real-time Broadcast
+    MQ->>RS: Consume message.channel.sent
+    RS->>U2: Broadcast to channel subscribers<br/>via WebSocket<br/>"message:new" event
+    
+    %% Handle Mentions
+    alt Message contains mentions
+        RS->>RS: Check for user mentions<br/>Create notifications for mentioned users
+        
+        loop For each mentioned user
+            RS->>MQ: Publish realtime.notification.created<br/>{userId, type: "mention", referenceId: messageId}
+            Note right of MQ: Event: realtime.notification.created<br/>Version: v1.0<br/>Routing Key: realtime.notification.created
+        end
+        
+        MQ->>US: Consume realtime.notification.created
+        US->>U2: Send push notification<br/>(if enabled in user preferences)
+    end
+    
+    %% Message Reactions
+    Note over U2,MQ: User adds reaction to message
+    
+    U2->>G: POST /messages/:id/reactions<br/>{emoji}
+    G->>MS: Add reaction request
+    
+    MS->>MS: Store reaction<br/>Update reaction count
+    
+    MS->>MQ: Publish message.reaction.added<br/>{reactionId, messageId, userId, emoji}
+    Note right of MQ: Event: message.reaction.added<br/>Version: v1.0<br/>Routing Key: message.reaction.added
+    
+    MS->>G: Return success
+    G->>U2: Reaction added
+    
+    MQ->>RS: Consume message.reaction.added
+    RS->>U1: Broadcast reaction update<br/>to all channel members<br/>"reaction:added" event
+    RS->>U2: Update reaction UI<br/>for all connected clients
+    
+    Note over U1,MQ: Message and reactions are synchronized across all clients

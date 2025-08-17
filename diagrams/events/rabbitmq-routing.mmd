@@ -1,0 +1,101 @@
+graph TB
+    subgraph "RabbitMQ Exchange & Routing"
+        EXCHANGE[flux.events<br/>Type: topic<br/>Durable: true]
+        
+        subgraph "Event Routing Keys"
+            AUTH_KEYS["🔐 Auth Events<br/>• auth.user.registered<br/>• auth.user.loginSucceeded<br/>• auth.password.resetRequested<br/>• auth.token.refreshed"]
+            
+            USER_KEYS["👤 User Events<br/>• user.profile.updated<br/>• user.status.changed"]
+            
+            SOCIAL_KEYS["👥 Social Events<br/>• social.friendRequest.sent<br/>• social.friendRequest.accepted<br/>• social.user.blocked<br/>• social.user.unblocked"]
+            
+            SERVER_KEYS["🏠 Server Events<br/>• server.created<br/>• server.member.joined<br/>• server.channel.created<br/>• server.role.assigned"]
+            
+            MESSAGE_KEYS["💬 Message Events<br/>• message.channel.sent<br/>• message.direct.sent<br/>• message.reaction.added<br/>• message.deleted"]
+            
+            MEDIA_KEYS["📁 Media Events<br/>• media.file.uploaded<br/>• media.avatar.updated"]
+            
+            REALTIME_KEYS["⚡ Realtime Events<br/>• realtime.voice.sessionStarted<br/>• realtime.typing.started<br/>• realtime.notification.created"]
+        end
+    end
+    
+    subgraph "Service Queues"
+        USER_QUEUE["user-service-queue<br/>Bindings:<br/>• auth.user.*<br/>• social.*<br/>• media.avatar.*<br/>• realtime.notification.created"]
+        
+        SERVER_QUEUE["server-service-queue<br/>Bindings:<br/>• server.*<br/>• realtime.voice.*"]
+        
+        MESSAGE_QUEUE["message-service-queue<br/>Bindings:<br/>• message.*<br/>• social.friendRequest.accepted<br/>• server.channel.created<br/>• media.file.uploaded"]
+        
+        REALTIME_QUEUE["realtime-service-queue<br/>Bindings:<br/>• *.*.* (all events)<br/>Universal consumer"]
+        
+        MEDIA_QUEUE["media-service-queue<br/>Bindings:<br/>• user.profile.updated<br/>• server.created"]
+    end
+    
+    subgraph "Dead Letter Queues"
+        DLX[flux.events.dlx<br/>Dead Letter Exchange]
+        DLQ_USER[user-service-queue.dlq]
+        DLQ_SERVER[server-service-queue.dlq]
+        DLQ_MESSAGE[message-service-queue.dlq]
+        DLQ_REALTIME[realtime-service-queue.dlq]
+        DLQ_MEDIA[media-service-queue.dlq]
+    end
+    
+    %% Exchange to routing keys
+    EXCHANGE --> AUTH_KEYS
+    EXCHANGE --> USER_KEYS
+    EXCHANGE --> SOCIAL_KEYS
+    EXCHANGE --> SERVER_KEYS
+    EXCHANGE --> MESSAGE_KEYS
+    EXCHANGE --> MEDIA_KEYS
+    EXCHANGE --> REALTIME_KEYS
+    
+    %% Routing to queues
+    AUTH_KEYS --> USER_QUEUE
+    AUTH_KEYS --> REALTIME_QUEUE
+    
+    USER_KEYS --> REALTIME_QUEUE
+    USER_KEYS --> MEDIA_QUEUE
+    
+    SOCIAL_KEYS --> USER_QUEUE
+    SOCIAL_KEYS --> MESSAGE_QUEUE
+    SOCIAL_KEYS --> REALTIME_QUEUE
+    
+    SERVER_KEYS --> SERVER_QUEUE
+    SERVER_KEYS --> MESSAGE_QUEUE
+    SERVER_KEYS --> REALTIME_QUEUE
+    SERVER_KEYS --> MEDIA_QUEUE
+    
+    MESSAGE_KEYS --> MESSAGE_QUEUE
+    MESSAGE_KEYS --> REALTIME_QUEUE
+    
+    MEDIA_KEYS --> USER_QUEUE
+    MEDIA_KEYS --> MESSAGE_QUEUE
+    MEDIA_KEYS --> REALTIME_QUEUE
+    
+    REALTIME_KEYS --> USER_QUEUE
+    REALTIME_KEYS --> SERVER_QUEUE
+    REALTIME_KEYS --> REALTIME_QUEUE
+    
+    %% Dead letter routing
+    USER_QUEUE -.-> DLX
+    SERVER_QUEUE -.-> DLX
+    MESSAGE_QUEUE -.-> DLX
+    REALTIME_QUEUE -.-> DLX
+    MEDIA_QUEUE -.-> DLX
+    
+    DLX --> DLQ_USER
+    DLX --> DLQ_SERVER
+    DLX --> DLQ_MESSAGE
+    DLX --> DLQ_REALTIME
+    DLX --> DLX_MEDIA
+    
+    %% Styling
+    classDef exchangeClass fill:#ffeb3b,stroke:#f57f17,stroke-width:3px
+    classDef queueClass fill:#4caf50,stroke:#2e7d32,stroke-width:2px
+    classDef eventClass fill:#2196f3,stroke:#0d47a1,stroke-width:2px
+    classDef dlqClass fill:#f44336,stroke:#c62828,stroke-width:2px
+    
+    class EXCHANGE exchangeClass
+    class USER_QUEUE,SERVER_QUEUE,MESSAGE_QUEUE,REALTIME_QUEUE,MEDIA_QUEUE queueClass
+    class AUTH_KEYS,USER_KEYS,SOCIAL_KEYS,SERVER_KEYS,MESSAGE_KEYS,MEDIA_KEYS,REALTIME_KEYS eventClass
+    class DLX,DLQ_USER,DLQ_SERVER,DLQ_MESSAGE,DLQ_REALTIME,DLQ_MEDIA dlqClass

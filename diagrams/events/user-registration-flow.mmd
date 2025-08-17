@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant C as Client
+    participant G as Gateway
+    participant A as Auth Service
+    participant U as User Service
+    participant R as Realtime Service
+    participant MQ as RabbitMQ
+
+    Note over C,MQ: User Registration Flow
+
+    C->>G: POST /auth/register<br/>{email, username, password}
+    G->>A: Forward registration request
+    
+    A->>A: Validate input<br/>Hash password<br/>Create user record
+    
+    A->>MQ: Publish auth.user.registered<br/>{userId, email, username, registrationMethod}
+    Note right of MQ: Event: auth.user.registered<br/>Version: v1.0<br/>Routing Key: auth.user.registered
+    
+    A->>G: Return success response<br/>{userId, message}
+    G->>C: Registration successful
+    
+    MQ->>U: Consume auth.user.registered
+    U->>U: Create user profile<br/>Set default status: offline<br/>Initialize preferences
+    
+    U->>MQ: Publish user.profile.created<br/>{userId, username, avatar, status}
+    Note right of MQ: Event: user.profile.created<br/>Version: v1.0<br/>Routing Key: user.profile.created
+    
+    MQ->>R: Consume user.profile.created
+    R->>R: Setup notification preferences<br/>Initialize WebSocket subscriptions<br/>Prepare realtime channels
+    
+    Note over C,MQ: User is now ready to login and use the app

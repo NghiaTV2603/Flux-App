@@ -1,0 +1,88 @@
+sequenceDiagram
+    participant P as Producer Service
+    participant MQ as RabbitMQ
+    participant C as Consumer Service
+    participant DLX as Dead Letter Exchange
+    participant DLQ as Dead Letter Queue
+    participant M as Monitoring Service
+
+    Note over P,M: Event Error Handling & Retry Flow
+
+    %% Successful Processing
+    P->>MQ: Publish event<br/>{eventId, eventType, data}
+    MQ->>C: Deliver event<br/>Attempt #1
+    C->>C: Process event successfully
+    C->>MQ: ACK message
+    Note right of MQ: Event processed successfully
+
+    %% Failed Processing - Retry Scenario
+    Note over P,M: Processing failure scenario
+
+    P->>MQ: Publish event<br/>{eventId, eventType, data}
+    MQ->>C: Deliver event<br/>Attempt #1
+    C->>C: Process event<br/>❌ Database timeout
+    C->>MQ: NACK message<br/>requeue = true
+    
+    Note right of MQ: Retry #1 (after 1s delay)
+    MQ->>C: Redeliver event<br/>Attempt #2<br/>headers.redelivered = true
+    C->>C: Process event<br/>❌ Still failing
+    C->>MQ: NACK message<br/>requeue = true
+    
+    Note right of MQ: Retry #2 (after 2s delay)
+    MQ->>C: Redeliver event<br/>Attempt #3<br/>headers.redelivered = true
+    C->>C: Process event<br/>❌ Still failing
+    C->>MQ: NACK message<br/>requeue = true
+    
+    Note right of MQ: Max retries exceeded
+    MQ->>DLX: Route to Dead Letter Exchange<br/>x-death header added
+    DLX->>DLQ: Store in Dead Letter Queue
+    
+    %% Error Event Publishing
+    C->>MQ: Publish system.event.processingFailed<br/>{originalEventId, failureReason, retryCount}
+    MQ->>M: Deliver error event
+    M->>M: Log error<br/>Update metrics<br/>Send alerts if needed
+    
+    %% Manual Recovery
+    Note over P,M: Manual intervention for DLQ messages
+    
+    M->>DLQ: Inspect failed message<br/>Analyze failure cause
+    M->>M: Fix underlying issue<br/>(e.g., database connectivity)
+    M->>DLQ: Requeue message<br/>or discard if corrupted
+    
+    alt Message requeued
+        DLQ->>MQ: Republish to original queue
+        MQ->>C: Deliver event<br/>Fresh attempt
+        C->>C: Process successfully<br/>✅ Issue resolved
+        C->>MQ: ACK message
+    else Message discarded
+        M->>M: Log discarded message<br/>Update failure metrics
+    end
+    
+    %% Poison Message Detection
+    Note over P,M: Poison message scenario
+    
+    P->>MQ: Publish malformed event<br/>{invalid schema}
+    MQ->>C: Deliver event
+    C->>C: Schema validation fails<br/>❌ Cannot process
+    C->>C: Check retry count<br/>If > threshold, mark as poison
+    C->>MQ: NACK message<br/>requeue = false (poison)
+    MQ->>DLX: Route directly to DLX<br/>Skip retries for poison
+    
+    %% Circuit Breaker Pattern
+    Note over P,M: Circuit breaker activation
+    
+    C->>C: Detect high failure rate<br/>(e.g., 50% in 1 minute)
+    C->>C: Open circuit breaker<br/>Stop processing events
+    C->>MQ: NACK all messages<br/>requeue = true
+    
+    Note right of C: Circuit breaker open<br/>Events accumulate in queue
+    
+    C->>C: Wait for cooldown period<br/>(e.g., 30 seconds)
+    C->>C: Try half-open state<br/>Process one test event
+    
+    alt Test event succeeds
+        C->>C: Close circuit breaker<br/>Resume normal processing
+        MQ->>C: Resume event delivery
+    else Test event fails
+        C->>C: Keep circuit open<br/>Continue waiting
+    end

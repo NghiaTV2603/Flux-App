@@ -1,0 +1,85 @@
+sequenceDiagram
+    participant U as User
+    participant G as Gateway
+    participant RS as Realtime Service
+    participant SS as Server Service
+    participant Others as Other Channel Members
+    participant MQ as RabbitMQ
+
+    Note over U,MQ: Voice Channel & Media Sharing Flow
+
+    %% Join Voice Channel
+    U->>G: POST /voice/channels/:id/join<br/>{audioSettings}
+    G->>RS: Join voice channel request
+    
+    RS->>RS: Validate permissions<br/>Create voice session<br/>Generate WebRTC connection<br/>Setup audio stream
+    
+    RS->>MQ: Publish realtime.voice.sessionStarted<br/>{voiceSessionId, channelId, userId, audioSettings}
+    Note right of MQ: Event: realtime.voice.sessionStarted<br/>Version: v1.0<br/>Routing Key: realtime.voice.sessionStarted
+    
+    RS->>G: Return WebRTC connection info<br/>{sessionId, iceServers, audioConfig}
+    G->>U: Voice connection established
+    
+    %% Update Server State
+    MQ->>SS: Consume realtime.voice.sessionStarted
+    SS->>SS: Update channel member count<br/>Track active voice users<br/>Update server statistics
+    
+    %% Notify Other Members
+    MQ->>RS: Broadcast to channel members
+    RS->>Others: Notify user joined voice<br/>"voice:user-joined" event<br/>Update voice channel UI
+    
+    %% Voice Settings Changes
+    Note over U,MQ: User changes voice settings
+    
+    U->>G: PATCH /voice/sessions/:id<br/>{muted: true, deafened: false}
+    G->>RS: Update voice settings
+    
+    RS->>RS: Update session settings<br/>Apply audio filters<br/>Update stream configuration
+    
+    RS->>MQ: Publish realtime.voice.settingsChanged<br/>{sessionId, userId, settings}
+    Note right of MQ: Event: realtime.voice.settingsChanged<br/>Version: v1.0<br/>Routing Key: realtime.voice.settingsChanged
+    
+    RS->>G: Settings updated
+    G->>U: Voice settings applied
+    
+    MQ->>RS: Broadcast settings change
+    RS->>Others: Update user voice status<br/>"voice:settings-changed" event<br/>Show mute/deafen indicators
+    
+    %% Screen Sharing
+    Note over U,MQ: User starts screen sharing
+    
+    U->>G: POST /voice/sessions/:id/screen-share<br/>{streamConfig}
+    G->>RS: Start screen sharing
+    
+    RS->>RS: Setup screen share stream<br/>Configure video encoding<br/>Create share session
+    
+    RS->>MQ: Publish realtime.screen.shareStarted<br/>{sessionId, userId, streamId, config}
+    Note right of MQ: Event: realtime.screen.shareStarted<br/>Version: v1.0<br/>Routing Key: realtime.screen.shareStarted
+    
+    RS->>G: Screen sharing started<br/>{streamId, viewerConfig}
+    G->>U: Screen sharing active
+    
+    MQ->>RS: Broadcast screen share
+    RS->>Others: Notify screen sharing started<br/>"screen:share-started" event<br/>Enable viewer mode
+    
+    %% Leave Voice Channel
+    Note over U,MQ: User leaves voice channel
+    
+    U->>G: POST /voice/channels/:id/leave
+    G->>RS: Leave voice channel
+    
+    RS->>RS: Cleanup voice session<br/>Close WebRTC connections<br/>Stop audio/video streams
+    
+    RS->>MQ: Publish realtime.voice.sessionEnded<br/>{sessionId, userId, duration}
+    Note right of MQ: Event: realtime.voice.sessionEnded<br/>Version: v1.0<br/>Routing Key: realtime.voice.sessionEnded
+    
+    RS->>G: Successfully left channel
+    G->>U: Disconnected from voice
+    
+    MQ->>SS: Consume realtime.voice.sessionEnded
+    SS->>SS: Update channel member count<br/>Clean up session data<br/>Update statistics
+    
+    MQ->>RS: Broadcast user left
+    RS->>Others: Notify user left voice<br/>"voice:user-left" event<br/>Update channel member list
+    
+    Note over U,MQ: Voice session completed and cleaned up

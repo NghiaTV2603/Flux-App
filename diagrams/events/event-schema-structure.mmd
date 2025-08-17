@@ -1,0 +1,100 @@
+graph TB
+    subgraph "Base Event Schema Structure"
+        BASE[Base Event Schema<br/>JSON Schema v7]
+        
+        subgraph "Required Fields"
+            EVENT_ID[eventId<br/>UUID<br/>Unique identifier]
+            EVENT_TYPE[eventType<br/>String<br/>Pattern: domain.entity.action]
+            VERSION[version<br/>String<br/>Pattern: v[0-9]+\.[0-9]+]
+            TIMESTAMP[timestamp<br/>ISO 8601<br/>Event occurrence time]
+            SOURCE[source<br/>Object<br/>{service, version}]
+            DATA[data<br/>Object<br/>Event-specific payload]
+        end
+        
+        subgraph "Optional Fields"
+            CORRELATION_ID[correlationId<br/>UUID<br/>Trace related events]
+            CAUSATION_ID[causationId<br/>UUID<br/>Event that caused this]
+            METADATA[metadata<br/>Object<br/>Additional context]
+        end
+    end
+    
+    subgraph "Domain-Specific Schemas"
+        AUTH_SCHEMA["🔐 Auth Events<br/>• User registration<br/>• Login/logout<br/>• Password reset<br/>• Token refresh"]
+        
+        USER_SCHEMA["👤 User Events<br/>• Profile updates<br/>• Status changes<br/>• Preferences"]
+        
+        SOCIAL_SCHEMA["👥 Social Events<br/>• Friend requests<br/>• Blocking/unblocking<br/>• Relationship changes"]
+        
+        SERVER_SCHEMA["🏠 Server Events<br/>• Server CRUD<br/>• Member management<br/>• Channel operations<br/>• Role assignments"]
+        
+        MESSAGE_SCHEMA["💬 Message Events<br/>• Channel messages<br/>• Direct messages<br/>• Reactions<br/>• Message operations"]
+        
+        MEDIA_SCHEMA["📁 Media Events<br/>• File uploads<br/>• Avatar changes<br/>• Media processing"]
+        
+        REALTIME_SCHEMA["⚡ Realtime Events<br/>• Voice sessions<br/>• Typing indicators<br/>• Notifications<br/>• Presence updates"]
+    end
+    
+    subgraph "Schema Evolution"
+        V1_0[Version 1.0<br/>Initial schema<br/>Backward compatible]
+        V1_1[Version 1.1<br/>Added optional fields<br/>Backward compatible]
+        V2_0[Version 2.0<br/>Breaking changes<br/>Not backward compatible]
+        
+        COMPAT[Compatibility Matrix<br/>minVersion: v1.0<br/>maxVersion: v1.x<br/>schemaUrl: https://schemas.flux.app]
+    end
+    
+    subgraph "Validation & Processing"
+        VALIDATION[Schema Validation<br/>• Joi validation<br/>• Type checking<br/>• Format validation]
+        
+        SERIALIZATION[Serialization<br/>• JSON format<br/>• UTF-8 encoding<br/>• Compression support]
+        
+        RETRY_LOGIC[Retry Metadata<br/>• retryCount: 0-3<br/>• maxRetries: 3<br/>• backoff strategy]
+    end
+    
+    %% Base to required fields
+    BASE --> EVENT_ID
+    BASE --> EVENT_TYPE
+    BASE --> VERSION
+    BASE --> TIMESTAMP
+    BASE --> SOURCE
+    BASE --> DATA
+    
+    %% Base to optional fields
+    BASE -.-> CORRELATION_ID
+    BASE -.-> CAUSATION_ID
+    BASE -.-> METADATA
+    
+    %% Base to domain schemas
+    BASE --> AUTH_SCHEMA
+    BASE --> USER_SCHEMA
+    BASE --> SOCIAL_SCHEMA
+    BASE --> SERVER_SCHEMA
+    BASE --> MESSAGE_SCHEMA
+    BASE --> MEDIA_SCHEMA
+    BASE --> REALTIME_SCHEMA
+    
+    %% Schema evolution
+    V1_0 --> V1_1
+    V1_1 --> V2_0
+    COMPAT --> V1_0
+    COMPAT --> V1_1
+    COMPAT --> V2_0
+    
+    %% Processing
+    BASE --> VALIDATION
+    VALIDATION --> SERIALIZATION
+    SERIALIZATION --> RETRY_LOGIC
+    
+    %% Styling
+    classDef baseClass fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    classDef requiredClass fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef optionalClass fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef domainClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef versionClass fill:#ffebee,stroke:#d32f2f,stroke-width:2px
+    classDef processClass fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    
+    class BASE baseClass
+    class EVENT_ID,EVENT_TYPE,VERSION,TIMESTAMP,SOURCE,DATA requiredClass
+    class CORRELATION_ID,CAUSATION_ID,METADATA optionalClass
+    class AUTH_SCHEMA,USER_SCHEMA,SOCIAL_SCHEMA,SERVER_SCHEMA,MESSAGE_SCHEMA,MEDIA_SCHEMA,REALTIME_SCHEMA domainClass
+    class V1_0,V1_1,V2_0,COMPAT versionClass
+    class VALIDATION,SERIALIZATION,RETRY_LOGIC processClass

@@ -1,0 +1,91 @@
+graph TB
+    subgraph "Client Layer"
+        WEB[Web Client]
+        MOBILE[Mobile Client]
+        DESKTOP[Desktop Client]
+    end
+    
+    subgraph "API Gateway"
+        GATEWAY[Gateway API<br/>Rate Limiting & Auth]
+    end
+    
+    subgraph "Microservices"
+        AUTH[Auth Service<br/>PostgreSQL]
+        USER[User & Social Service<br/>PostgreSQL + Redis]
+        SERVER[Server & Channel Service<br/>PostgreSQL + Redis]
+        MESSAGE[Message Service<br/>MongoDB + Elasticsearch]
+        MEDIA[Media & File Service<br/>PostgreSQL + S3]
+        REALTIME[Realtime Service<br/>Redis + WebSocket]
+    end
+    
+    subgraph "Message Queue"
+        RABBITMQ[RabbitMQ<br/>Exchange: flux.events<br/>Type: topic]
+    end
+    
+    subgraph "Event Flows"
+        FLOW1["🔐 Auth Events<br/>• user.registered<br/>• user.loginSucceeded<br/>• password.resetRequested"]
+        FLOW2["👥 Social Events<br/>• friendRequest.sent<br/>• friendRequest.accepted<br/>• user.blocked"]
+        FLOW3["🏠 Server Events<br/>• server.created<br/>• member.joined<br/>• channel.created"]
+        FLOW4["💬 Message Events<br/>• message.channel.sent<br/>• message.direct.sent<br/>• reaction.added"]
+        FLOW5["📁 Media Events<br/>• file.uploaded<br/>• avatar.updated"]
+        FLOW6["⚡ Realtime Events<br/>• voice.sessionStarted<br/>• typing.started<br/>• notification.created"]
+    end
+    
+    %% Client connections
+    WEB --> GATEWAY
+    MOBILE --> GATEWAY
+    DESKTOP --> GATEWAY
+    
+    %% Gateway to services
+    GATEWAY --> AUTH
+    GATEWAY --> USER
+    GATEWAY --> SERVER
+    GATEWAY --> MESSAGE
+    GATEWAY --> MEDIA
+    GATEWAY --> REALTIME
+    
+    %% Service to RabbitMQ
+    AUTH --> RABBITMQ
+    USER --> RABBITMQ
+    SERVER --> RABBITMQ
+    MESSAGE --> RABBITMQ
+    MEDIA --> RABBITMQ
+    REALTIME --> RABBITMQ
+    
+    %% RabbitMQ to event flows
+    RABBITMQ --> FLOW1
+    RABBITMQ --> FLOW2
+    RABBITMQ --> FLOW3
+    RABBITMQ --> FLOW4
+    RABBITMQ --> FLOW5
+    RABBITMQ --> FLOW6
+    
+    %% Event flows back to services
+    FLOW1 --> USER
+    FLOW1 --> REALTIME
+    FLOW2 --> MESSAGE
+    FLOW2 --> REALTIME
+    FLOW3 --> MESSAGE
+    FLOW3 --> REALTIME
+    FLOW4 --> USER
+    FLOW4 --> REALTIME
+    FLOW5 --> USER
+    FLOW5 --> MESSAGE
+    FLOW6 --> USER
+    FLOW6 --> SERVER
+    
+    %% WebSocket connections
+    REALTIME -.-> WEB
+    REALTIME -.-> MOBILE
+    REALTIME -.-> DESKTOP
+
+    %% Styling
+    classDef clientClass fill:#e1f5fe
+    classDef serviceClass fill:#f3e5f5
+    classDef queueClass fill:#fff3e0
+    classDef eventClass fill:#e8f5e8
+    
+    class WEB,MOBILE,DESKTOP clientClass
+    class AUTH,USER,SERVER,MESSAGE,MEDIA,REALTIME serviceClass
+    class RABBITMQ queueClass
+    class FLOW1,FLOW2,FLOW3,FLOW4,FLOW5,FLOW6 eventClass

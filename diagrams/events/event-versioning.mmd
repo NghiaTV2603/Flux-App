@@ -1,0 +1,99 @@
+graph TB
+    subgraph "Event Schema Versioning Strategy"
+        
+        subgraph "Version Types"
+            PATCH[Patch Version<br/>v1.0 → v1.1<br/>Backward Compatible]
+            MINOR[Minor Version<br/>v1.x → v1.y<br/>Backward Compatible]
+            MAJOR[Major Version<br/>v1.x → v2.0<br/>Breaking Changes]
+        end
+        
+        subgraph "Backward Compatible Changes (Patch/Minor)"
+            ADD_OPTIONAL[Add Optional Fields<br/>✅ Safe<br/>Old consumers ignore new fields]
+            ADD_ENUM[Add Enum Values<br/>✅ Safe<br/>Old consumers handle unknown values]
+            RELAX_VALIDATION[Relax Constraints<br/>✅ Safe<br/>Wider acceptance range]
+            ADD_METADATA[Add Metadata<br/>✅ Safe<br/>Non-functional additions]
+        end
+        
+        subgraph "Breaking Changes (Major)"
+            REMOVE_FIELD[Remove Fields<br/>❌ Breaking<br/>Old consumers expect field]
+            CHANGE_TYPE[Change Field Types<br/>❌ Breaking<br/>Type mismatch errors]
+            MAKE_REQUIRED[Make Optional → Required<br/>❌ Breaking<br/>Old events missing field]
+            RENAME_FIELD[Rename Fields<br/>❌ Breaking<br/>Field not found errors]
+            CHANGE_ENUM[Remove Enum Values<br/>❌ Breaking<br/>Invalid enum errors]
+        end
+        
+        subgraph "Version Headers & Metadata"
+            SCHEMA_URL[schemaUrl<br/>https://schemas.flux.app/events/<br/>message.channel.sent/v1.1.json]
+            COMPATIBILITY[compatibility<br/>minVersion: v1.0<br/>maxVersion: v1.x<br/>deprecatedAt: ISO date]
+            MIGRATION[migrationGuide<br/>URL to migration docs<br/>Breaking change details]
+        end
+        
+        subgraph "Consumer Compatibility"
+            FORWARD_COMPAT[Forward Compatibility<br/>Old consumers + New events<br/>Ignore unknown fields]
+            BACKWARD_COMPAT[Backward Compatibility<br/>New consumers + Old events<br/>Handle missing fields]
+            VERSION_NEGOTIATION[Version Negotiation<br/>Consumer declares supported versions<br/>Producer sends compatible format]
+        end
+        
+        subgraph "Migration Strategy"
+            DUAL_PUBLISH[Dual Publishing<br/>Publish both v1.x and v2.0<br/>During transition period]
+            GRADUAL_ROLLOUT[Gradual Rollout<br/>Update consumers first<br/>Then update producers]
+            FEATURE_FLAGS[Feature Flags<br/>Toggle new schema features<br/>Safe rollback capability]
+            MONITORING[Schema Monitoring<br/>Track version usage<br/>Monitor compatibility errors]
+        end
+    end
+    
+    subgraph "Example: Message Event Evolution"
+        V1_0_MSG["v1.0: message.channel.sent<br/>{messageId, channelId, authorId,<br/>content, sentAt}"]
+        
+        V1_1_MSG["v1.1: message.channel.sent<br/>{messageId, channelId, authorId,<br/>content, sentAt,<br/>attachments?: [], mentions?: {}}"]
+        
+        V1_2_MSG["v1.2: message.channel.sent<br/>{messageId, channelId, authorId,<br/>content, sentAt, attachments?: [],<br/>mentions?: {}, replyTo?: string,<br/>threadId?: string}"]
+        
+        V2_0_MSG["v2.0: message.channel.sent<br/>{messageId, channelId, serverId,<br/>author: {id, username}, content,<br/>metadata: {sentAt, editedAt?},<br/>attachments: [], mentions: {},<br/>references?: {replyTo?, threadId?}}"]
+    end
+    
+    %% Version type relationships
+    PATCH --> ADD_OPTIONAL
+    PATCH --> ADD_ENUM
+    MINOR --> ADD_OPTIONAL
+    MINOR --> RELAX_VALIDATION
+    MAJOR --> REMOVE_FIELD
+    MAJOR --> CHANGE_TYPE
+    MAJOR --> MAKE_REQUIRED
+    MAJOR --> RENAME_FIELD
+    
+    %% Version headers
+    PATCH --> SCHEMA_URL
+    MINOR --> SCHEMA_URL
+    MAJOR --> SCHEMA_URL
+    MAJOR --> COMPATIBILITY
+    MAJOR --> MIGRATION
+    
+    %% Compatibility strategies
+    PATCH --> FORWARD_COMPAT
+    MINOR --> FORWARD_COMPAT
+    MAJOR --> VERSION_NEGOTIATION
+    
+    %% Migration strategies
+    MAJOR --> DUAL_PUBLISH
+    MAJOR --> GRADUAL_ROLLOUT
+    DUAL_PUBLISH --> FEATURE_FLAGS
+    GRADUAL_ROLLOUT --> MONITORING
+    
+    %% Example evolution
+    V1_0_MSG --> V1_1_MSG
+    V1_1_MSG --> V1_2_MSG
+    V1_2_MSG --> V2_0_MSG
+    
+    %% Styling
+    classDef safeClass fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    classDef breakingClass fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px
+    classDef versionClass fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef strategyClass fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef exampleClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    class PATCH,MINOR,ADD_OPTIONAL,ADD_ENUM,RELAX_VALIDATION,ADD_METADATA,FORWARD_COMPAT,BACKWARD_COMPAT safeClass
+    class MAJOR,REMOVE_FIELD,CHANGE_TYPE,MAKE_REQUIRED,RENAME_FIELD,CHANGE_ENUM breakingClass
+    class SCHEMA_URL,COMPATIBILITY,MIGRATION,VERSION_NEGOTIATION versionClass
+    class DUAL_PUBLISH,GRADUAL_ROLLOUT,FEATURE_FLAGS,MONITORING strategyClass
+    class V1_0_MSG,V1_1_MSG,V1_2_MSG,V2_0_MSG exampleClass
