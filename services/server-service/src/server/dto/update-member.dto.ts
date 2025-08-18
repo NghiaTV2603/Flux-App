@@ -1,13 +1,29 @@
-import { IsString, IsOptional, IsIn, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  IsArray,
+  IsUUID,
+} from "class-validator";
 
 export class UpdateMemberDto {
   @IsString()
   @IsOptional()
-  @MaxLength(50)
+  @MaxLength(32)
   nickname?: string;
 
-  @IsString()
   @IsOptional()
-  @IsIn(['owner', 'admin', 'member'])
-  role?: string;
+  @IsArray()
+  @IsUUID("4", { each: true })
+  roleIds?: string[];
+}
+
+export class AssignRoleDto {
+  @IsUUID()
+  roleId: string;
+}
+
+export class RemoveRoleDto {
+  @IsUUID()
+  roleId: string;
 }

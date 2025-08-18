@@ -3,6 +3,8 @@ import {
   OnModuleInit,
   OnModuleDestroy,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as amqp from 'amqplib';
@@ -18,6 +20,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
 
@@ -148,6 +151,88 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       }
     } catch (error) {
       this.logger.error('Error handling user.updated event:', error);
+      throw error;
+    }
+  }
+
+  // Publish methods for user events
+  async publishUserProfileUpdated(data: {
+    userId: string;
+    username?: string;
+    displayName?: string;
+    avatar?: string;
+    bio?: string;
+  }) {
+    try {
+      await this.channel.publish(
+        this.exchange,
+        'user.profile.updated',
+        Buffer.from(JSON.stringify(data)),
+        { persistent: true },
+      );
+      this.logger.log('Published user.profile.updated event', data);
+    } catch (error) {
+      this.logger.error('Error publishing user.profile.updated event:', error);
+      throw error;
+    }
+  }
+
+  async publishUserStatusChanged(data: {
+    userId: string;
+    status: string;
+    customStatus?: string;
+  }) {
+    try {
+      await this.channel.publish(
+        this.exchange,
+        'user.status.changed',
+        Buffer.from(JSON.stringify(data)),
+        { persistent: true },
+      );
+      this.logger.log('Published user.status.changed event', data);
+    } catch (error) {
+      this.logger.error('Error publishing user.status.changed event:', error);
+      throw error;
+    }
+  }
+
+  async publishFriendRequestSent(data: {
+    fromUserId: string;
+    toUserId: string;
+    requestId: string;
+  }) {
+    try {
+      await this.channel.publish(
+        this.exchange,
+        'friend.request.sent',
+        Buffer.from(JSON.stringify(data)),
+        { persistent: true },
+      );
+      this.logger.log('Published friend.request.sent event', data);
+    } catch (error) {
+      this.logger.error('Error publishing friend.request.sent event:', error);
+      throw error;
+    }
+  }
+
+  async publishFriendRequestAccepted(data: {
+    fromUserId: string;
+    toUserId: string;
+    requestId: string;
+  }) {
+    try {
+      await this.channel.publish(
+        this.exchange,
+        'friend.request.accepted',
+        Buffer.from(JSON.stringify(data)),
+        { persistent: true },
+      );
+      this.logger.log('Published friend.request.accepted event', data);
+    } catch (error) {
+      this.logger.error(
+        'Error publishing friend.request.accepted event:',
+        error,
+      );
       throw error;
     }
   }

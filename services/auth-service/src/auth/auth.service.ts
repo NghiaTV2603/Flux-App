@@ -11,6 +11,7 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -23,7 +24,7 @@ export class AuthService {
     private readonly rabbitMQService: RabbitMQService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto, deviceInfo?: any) {
     const { email, username, password } = registerDto;
 
     // Check if user already exists
@@ -54,6 +55,7 @@ export class AuthService {
         email: true,
         username: true,
         isVerified: true,
+        isActive: true,
         createdAt: true,
       },
     });
@@ -71,7 +73,7 @@ export class AuthService {
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(user.id);
+    const tokens = await this.generateTokens(user.id, deviceInfo);
 
     return {
       user,
@@ -79,7 +81,7 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, deviceInfo?: any) {
     const { email, password } = loginDto;
 
     // Find user
@@ -87,7 +89,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user || !user.passwordHash) {
+    if (!user || !user.passwordHash || !user.isActive) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -98,7 +100,7 @@ export class AuthService {
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(user.id);
+    const tokens = await this.generateTokens(user.id, deviceInfo);
 
     return {
       user: {
@@ -106,6 +108,7 @@ export class AuthService {
         email: user.email,
         username: user.username,
         isVerified: user.isVerified,
+        isActive: user.isActive,
       },
       ...tokens,
     };
@@ -170,41 +173,54 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
-  async refreshToken(refreshToken: string) {
-    const tokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+  async refreshToken(refreshToken: string, deviceInfo?: any) {
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+
+    const sessionRecord = await this.prisma.userSession.findUnique({
+      where: { refreshTokenHash },
       include: { user: true },
     });
 
-    if (!tokenRecord || tokenRecord.expiresAt < new Date()) {
+    if (!sessionRecord || sessionRecord.expiresAt < new Date()) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Generate new tokens
-    const tokens = await this.generateTokens(tokenRecord.userId);
-
-    // Delete old refresh token
-    await this.prisma.refreshToken.delete({
-      where: { token: refreshToken },
+    // Update last used timestamp
+    await this.prisma.userSession.update({
+      where: { id: sessionRecord.id },
+      data: {
+        lastUsedAt: new Date(),
+        deviceInfo: deviceInfo || sessionRecord.deviceInfo,
+      },
     });
 
-    return tokens;
+    // Generate new access token
+    const accessToken = await this.generateAccessToken(sessionRecord.userId);
+
+    return {
+      accessToken,
+      refreshToken, // Return the same refresh token
+    };
   }
 
-  private async generateTokens(userId: string) {
-    const payload = { sub: userId };
+  private async generateTokens(userId: string, deviceInfo?: any) {
+    const accessToken = await this.generateAccessToken(userId);
+    const refreshToken = this.generateRefreshToken();
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
 
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload),
-      this.jwtService.signAsync(payload, { expiresIn: '7d' }),
-    ]);
-
-    // Store refresh token
+    // Store user session
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    await this.prisma.refreshToken.create({
+    await this.prisma.userSession.create({
       data: {
         userId,
-        token: refreshToken,
+        refreshTokenHash,
+        deviceInfo: deviceInfo || null,
         expiresAt,
       },
     });
@@ -213,5 +229,89 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  private async generateAccessToken(userId: string) {
+    const payload = { sub: userId };
+    return this.jwtService.signAsync(payload);
+  }
+
+  private generateRefreshToken(): string {
+    return crypto.randomBytes(64).toString('hex');
+  }
+
+  async logout(refreshToken: string) {
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+
+    const session = await this.prisma.userSession.findUnique({
+      where: { refreshTokenHash },
+    });
+
+    if (session) {
+      await this.prisma.userSession.delete({
+        where: { id: session.id },
+      });
+    }
+
+    return { message: 'Logged out successfully' };
+  }
+
+  async logoutAll(userId: string) {
+    await this.prisma.userSession.deleteMany({
+      where: { userId },
+    });
+
+    return { message: 'Logged out from all devices successfully' };
+  }
+
+  async getUserSessions(userId: string) {
+    const sessions = await this.prisma.userSession.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        deviceInfo: true,
+        createdAt: true,
+        lastUsedAt: true,
+        expiresAt: true,
+      },
+      orderBy: { lastUsedAt: 'desc' },
+    });
+
+    return sessions;
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    const session = await this.prisma.userSession.findFirst({
+      where: {
+        id: sessionId,
+        userId,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    await this.prisma.userSession.delete({
+      where: { id: sessionId },
+    });
+
+    return { message: 'Session revoked successfully' };
+  }
+
+  async cleanupExpiredSessions() {
+    const result = await this.prisma.userSession.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    this.logger.log(`Cleaned up ${result.count} expired sessions`);
+    return result;
   }
 }

@@ -14,51 +14,79 @@ model User {
   id           String    @id @default(uuid())
   email        String    @unique
   username     String    @unique
-  passwordHash String?   // Nullable for OAuth users
-  isVerified   Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  passwordHash String?   @map("password_hash") // Nullable for OAuth users
+  isVerified   Boolean   @default(false) @map("is_verified") // Email verification status
+  isActive     Boolean   @default(true) @map("is_active") // Account active status
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  version      Int       @default(0) // Optimistic locking
 
   // Relations
   oauthProviders OAuthProvider[]
-  refreshTokens  RefreshToken[]
+  userSessions   UserSession[]
+  rateLimits     RateLimit[]
 
+  @@index([email])
+  @@index([username])
+  @@index([isActive, createdAt])
   @@map("users")
 }
 
 model OAuthProvider {
-  id         String @id @default(uuid())
-  userId     String
-  provider   String // 'google', 'facebook', etc.
-  providerId String // ID from OAuth provider
+  id           String @id @default(uuid())
+  userId       String @map("user_id")
+  provider     String // 'google', 'facebook', 'github'
+  providerId   String @map("provider_id") // ID from OAuth provider
+  providerData Json?  @map("provider_data") // Additional OAuth metadata
+  createdAt    DateTime @default(now()) @map("created_at")
   
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
+  @@index([userId, provider])
   @@map("oauth_providers")
 }
 
-model RefreshToken {
-  id        String   @id @default(uuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @unique @map("refresh_token_hash") // Hashed refresh token
+  deviceInfo       Json?    @map("device_info") // Browser, OS, IP, etc
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  lastUsedAt       DateTime @default(now()) @map("last_used_at")
   
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("refresh_tokens")
+  @@index([userId, expiresAt])
+  @@index([refreshTokenHash])
+  @@map("user_sessions")
 }
 
 model PasswordReset {
   id        String   @id @default(uuid())
   email     String
-  token     String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  token     String   @unique // Reset token
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false) // Token usage status
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("password_resets")
+}
+
+model RateLimit {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id") // Nullable for IP-based limits
+  ipAddress   String?  @map("ip_address")
+  endpoint    String   // API endpoint
+  count       Int      // Request count
+  windowStart DateTime @map("window_start")
+  expiresAt   DateTime @map("expires_at")
+  
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("rate_limits")
 } 

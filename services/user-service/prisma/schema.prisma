@@ -10,43 +10,170 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UserProfile {
-  userId       String    @id // Use User's ID as primary key from auth-service
-  username     String    @unique // Keep for caching/performance, sync from auth-service
-  avatar       String?   // URL to avatar image
-  status       String    @default("offline") // online, offline, invisible, busy
-  customStatus String?   // Custom status message
-  bio          String?   // User biography
-  displayName  String?   // Display name (different from username)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+enum UserStatus {
+  online
+  offline
+  busy
+  away
+  invisible
+}
 
+enum ActivityType {
+  playing
+  listening
+  watching
+  streaming
+  custom
+}
+
+enum FriendshipStatus {
+  pending
+  accepted
+  declined
+  blocked
+}
+
+model UserProfile {
+  userId           String     @id @map("user_id") // Same as auth service user ID
+  username         String     @unique // Synced from auth service
+  email            String?    // Synced from auth service
+  displayName      String?    @map("display_name") // User's display name
+  avatarUrl        String?    @map("avatar_url") // Avatar image URL
+  bannerUrl        String?    @map("banner_url") // Profile banner URL
+  bio              String?    // User biography
+  status           UserStatus @default(offline) // online|offline|busy|away|invisible
+  customStatus     String?    @map("custom_status") // Custom status message
+  activity         Json?      // Current activity (playing, listening, etc)
+  timezone         String?    // User timezone
+  language         String?    // Preferred language
+  showActivity     Boolean    @default(true) @map("show_activity") // Show current activity to others
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  lastSeenAt       DateTime?  @map("last_seen_at") // Last activity timestamp
+  version          Int        @default(0) // Optimistic locking
+
+  // Relations
+  settings         UserSettings?
+  activities       UserActivity[]
+  friendRequests   Friendship[] @relation("FriendRequester")
+  friendReceived   Friendship[] @relation("FriendAddressee")
+  blockedUsers     Block[]      @relation("Blocker")
+  blockedByUsers   Block[]      @relation("Blocked")
+
+  @@index([username])
+  @@index([displayName])
+  @@index([status, updatedAt])
   @@map("user_profiles")
 }
 
 model UserSettings {
-  id                    String  @id @default(uuid())
-  userId                String  @unique
-  theme                 String  @default("dark") // dark, light
-  language              String  @default("en") // en, vi, etc.
-  notificationsEnabled  Boolean @default(true)
-  soundEnabled          Boolean @default(true)
-  showOnlineStatus      Boolean @default(true)
-  allowDirectMessages   Boolean @default(true)
-  allowFriendRequests   Boolean @default(true)
+  userId                String  @id @map("user_id")
+  theme                 String  @default("dark") // dark|light|auto
+  notificationsEnabled  Boolean @default(true) @map("notifications_enabled")
+  soundEnabled          Boolean @default(true) @map("sound_enabled")
+  showOnlineStatus      Boolean @default(true) @map("show_online_status")
+  allowDirectMessages   Boolean @default(true) @map("allow_direct_messages")
+  allowFriendRequests   Boolean @default(true) @map("allow_friend_requests")
+  privacySettings       Json?   @map("privacy_settings") // Additional privacy settings
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
 
   @@map("user_settings")
 }
 
-model UserActivity {
-  id        String   @id @default(uuid())
-  userId    String
-  activity  String   // "playing", "listening", "watching", "streaming"
-  name      String   // Name of the activity
-  details   String?  // Additional details
-  state     String?  // Current state
-  startTime DateTime @default(now())
-  endTime   DateTime?
+model Friendship {
+  id           String           @id @default(uuid())
+  requesterId  String           @map("requester_id") // User who sent friend request
+  addresseeId  String           @map("addressee_id") // User who received request
+  status       FriendshipStatus @default(pending) // pending|accepted|declined|blocked
+  message      String?          // Optional friend request message
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+  respondedAt  DateTime?        @map("responded_at") // When request was accepted/declined
 
+  // Relations
+  requester UserProfile @relation("FriendRequester", fields: [requesterId], references: [userId], onDelete: Cascade)
+  addressee UserProfile @relation("FriendAddressee", fields: [addresseeId], references: [userId], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+  @@index([status, createdAt])
+  @@map("friendships")
+}
+
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String   @map("blocker_id") // User who blocked
+  blockedId String   @map("blocked_id") // User who was blocked
+  reason    String?  // Optional block reason
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  blocker UserProfile @relation("Blocker", fields: [blockerId], references: [userId], onDelete: Cascade)
+  blocked UserProfile @relation("Blocked", fields: [blockedId], references: [userId], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId, createdAt])
+  @@index([blockedId, createdAt])
+  @@map("blocks")
+}
+
+model UserActivity {
+  id           String       @id @default(uuid())
+  userId       String       @map("user_id")
+  activityType ActivityType @map("activity_type") // playing|listening|watching|streaming|custom
+  name         String       // Activity name
+  details      String?      // Activity details
+  state        String?      // Current state
+  timestamps   Json?        // start, end times
+  metadata     Json?        // Additional activity data
+  createdAt    DateTime     @default(now()) @map("created_at")
+  expiresAt    DateTime?    @map("expires_at") // Activity expiration
+
+  // Relations
+  user UserProfile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([activityType, createdAt])
   @@map("user_activities")
+}
+
+// Read Models (Materialized Views - can be implemented later)
+// These would be updated via triggers or background jobs
+
+model UserDirectory {
+  userId               String     @id @map("user_id")
+  username             String
+  displayName          String?    @map("display_name")
+  avatarUrl            String?    @map("avatar_url")
+  status               UserStatus
+  customStatus         String?    @map("custom_status")
+  showOnlineStatus     Boolean    @map("show_online_status")
+  allowFriendRequests  Boolean    @map("allow_friend_requests")
+  friendCount          Int        @default(0) @map("friend_count") // Computed from friendships
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+
+  @@index([username])
+  @@index([displayName])
+  @@map("user_directory")
+}
+
+model FriendListsCache {
+  userId                String           @map("user_id")
+  friendId              String           @map("friend_id")
+  friendUsername        String           @map("friend_username") // Denormalized
+  friendDisplayName     String?          @map("friend_display_name") // Denormalized
+  friendAvatarUrl       String?          @map("friend_avatar_url") // Denormalized
+  friendStatus          UserStatus       @map("friend_status") // online|offline|busy|away|invisible
+  friendshipStatus      FriendshipStatus @map("friendship_status") // accepted|pending|blocked
+  friendshipCreatedAt   DateTime         @map("friendship_created_at")
+  lastUpdated           DateTime         @default(now()) @map("last_updated")
+
+  @@id([userId, friendId])
+  @@index([userId, friendshipStatus])
+  @@index([friendStatus, lastUpdated])
+  @@map("friend_lists_cache")
 } 

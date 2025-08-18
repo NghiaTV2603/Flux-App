@@ -1,4 +1,15 @@
-import { IsString, IsOptional, IsNotEmpty, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  MaxLength,
+  IsUrl,
+  IsBoolean,
+  IsInt,
+  IsIn,
+  Min,
+  Max,
+} from "class-validator";
 
 export class CreateServerDto {
   @IsString()
@@ -11,11 +22,35 @@ export class CreateServerDto {
   @MaxLength(500)
   description?: string;
 
-  @IsString()
   @IsOptional()
-  icon?: string;
+  @IsUrl()
+  iconUrl?: string;
 
+  @IsOptional()
+  @IsUrl()
+  bannerUrl?: string;
+
+  @IsOptional()
+  @IsUrl()
+  splashUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  maxMembers?: number;
+
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ownerId: string;
+  @IsIn(["none", "low", "medium", "high", "highest"])
+  verificationLevel?: "none" | "low" | "medium" | "high" | "highest";
+
+  @IsOptional()
+  @IsString()
+  @IsIn(["disabled", "members_without_roles", "all_members"])
+  contentFilter?: "disabled" | "members_without_roles" | "all_members";
 }

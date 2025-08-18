@@ -1,19 +1,25 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  IsUrl,
+  IsBoolean,
+  IsTimeZone,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
-  @MaxLength(20)
-  username?: string;
+  @MaxLength(50)
+  displayName?: string;
 
   @IsOptional()
-  @IsString()
-  avatar?: string;
+  @IsUrl()
+  avatarUrl?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  customStatus?: string;
+  @IsUrl()
+  bannerUrl?: string;
 
   @IsOptional()
   @IsString()
@@ -22,6 +28,18 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(50)
-  displayName?: string;
+  @MaxLength(100)
+  customStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showActivity?: boolean;
 }

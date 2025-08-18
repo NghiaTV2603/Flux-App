@@ -36,7 +36,7 @@ export class UserController {
     @Param('userId') userId: string,
     @Body() updateStatusDto: UpdateStatusDto,
   ) {
-    return this.userService.updateStatus(userId, updateStatusDto.status);
+    return this.userService.updateStatus(userId, updateStatusDto);
   }
 
   @Get('search/:query')

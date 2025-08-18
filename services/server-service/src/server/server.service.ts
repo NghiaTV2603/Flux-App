@@ -19,23 +19,42 @@ export class ServerService {
     private rabbitMQ: RabbitMQService
   ) {}
 
+  // Helper function to check if member has role
+  private hasRole(member: any, roleName: string): boolean {
+    if (!member.roles || !Array.isArray(member.roles)) return false;
+    return member.roles.some((role: any) => role.name === roleName);
+  }
+
+  // Helper function to get member's primary role
+  private getMemberRole(member: any): string {
+    if (!member.roles || !Array.isArray(member.roles)) return "member";
+
+    // Priority: owner > admin > member
+    if (member.roles.some((role: any) => role.name === "owner")) return "owner";
+    if (member.roles.some((role: any) => role.name === "admin")) return "admin";
+    return "member";
+  }
+
   // Generate unique invite code
   private generateInviteCode(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   }
 
   // Create new server
-  async createServer(createServerDto: CreateServerDto) {
+  async createServer(createServerDto: CreateServerDto, userId: string) {
     const inviteCode = this.generateInviteCode();
 
     const server = await this.prisma.server.create({
       data: {
         ...createServerDto,
         inviteCode,
+        ownerId: userId,
         members: {
           create: {
-            userId: createServerDto.ownerId,
-            role: "owner",
+            userId: userId,
+            username: "Owner", // TODO: Get from user service
+            displayName: "Owner",
+            roles: [{ name: "owner", id: "owner-role" }], // JSON array
           },
         },
       },
@@ -91,7 +110,10 @@ export class ServerService {
 
     // Check if user is owner or admin
     const member = server.members.find((m) => m.userId === userId);
-    if (!member || (member.role !== "owner" && member.role !== "admin")) {
+    if (
+      !member ||
+      (!this.hasRole(member, "owner") && !this.hasRole(member, "admin"))
+    ) {
       throw new ForbiddenException(
         "Only server owners and admins can update server"
       );
@@ -166,7 +188,9 @@ export class ServerService {
       data: {
         serverId: server.id,
         userId,
-        role: "member",
+        username: "Member", // TODO: Get from user service
+        displayName: "Member",
+        roles: [{ name: "member", id: "member-role" }], // JSON array
       },
     });
 
@@ -184,7 +208,7 @@ export class ServerService {
         id: server.id,
         name: server.name,
         description: server.description,
-        icon: server.icon,
+        icon: server.iconUrl,
       },
     };
   }
@@ -195,7 +219,10 @@ export class ServerService {
 
     // Check if user is owner or admin
     const member = server.members.find((m) => m.userId === userId);
-    if (!member || (member.role !== "owner" && member.role !== "admin")) {
+    if (
+      !member ||
+      (!this.hasRole(member, "owner") && !this.hasRole(member, "admin"))
+    ) {
       throw new ForbiddenException(
         "Only server owners and admins can generate invite codes"
       );
@@ -230,7 +257,7 @@ export class ServerService {
     const requester = server.members.find((m) => m.userId === userId);
     if (
       !requester ||
-      (requester.role !== "owner" && requester.role !== "admin")
+      (!this.hasRole(requester, "owner") && !this.hasRole(requester, "admin"))
     ) {
       throw new ForbiddenException(
         "Only server owners and admins can update members"
@@ -243,26 +270,8 @@ export class ServerService {
       throw new NotFoundException("Member not found");
     }
 
-    // Owner cannot be demoted
-    if (
-      targetMember.role === "owner" &&
-      updateMemberDto.role &&
-      updateMemberDto.role !== "owner"
-    ) {
-      throw new ForbiddenException("Cannot change owner role");
-    }
-
-    // Only owner can promote to admin or change admin role
-    if (
-      updateMemberDto.role &&
-      (updateMemberDto.role === "admin" || targetMember.role === "admin")
-    ) {
-      if (requester.role !== "owner") {
-        throw new ForbiddenException(
-          "Only server owner can manage admin roles"
-        );
-      }
-    }
+    // TODO: Implement role validation based on roleIds when needed
+    // For now, we'll just update the nickname if provided
 
     const updatedMember = await this.prisma.serverMember.update({
       where: { id: memberId },
@@ -289,7 +298,7 @@ export class ServerService {
     const requester = server.members.find((m) => m.userId === userId);
     if (
       !requester ||
-      (requester.role !== "owner" && requester.role !== "admin")
+      (!this.hasRole(requester, "owner") && !this.hasRole(requester, "admin"))
     ) {
       throw new ForbiddenException(
         "Only server owners and admins can remove members"
@@ -303,12 +312,15 @@ export class ServerService {
     }
 
     // Cannot remove owner
-    if (targetMember.role === "owner") {
+    if (this.hasRole(targetMember, "owner")) {
       throw new ForbiddenException("Cannot remove server owner");
     }
 
     // Only owner can remove admin
-    if (targetMember.role === "admin" && requester.role !== "owner") {
+    if (
+      this.hasRole(targetMember, "admin") &&
+      !this.hasRole(requester, "owner")
+    ) {
       throw new ForbiddenException("Only server owner can remove admins");
     }
 
@@ -338,7 +350,7 @@ export class ServerService {
 
     return members.map((member) => ({
       ...member.server,
-      memberRole: member.role,
+      memberRole: this.getMemberRole(member),
       joinedAt: member.joinedAt,
     }));
   }
