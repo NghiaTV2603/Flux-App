@@ -9,6 +9,11 @@ import {
 import { HttpClientService } from '../services/http-client.service';
 import { RateLimit, RateLimitGuard } from '../guards/rate-limit.guard';
 
+/**
+ * Auth Controller - Handles authentication and authorization
+ * Routes all auth requests to Auth Service
+ * Includes: register, login, OAuth, password reset, token refresh
+ */
 @Controller('auth')
 @UseGuards(RateLimitGuard)
 export class AuthController {
@@ -34,6 +39,18 @@ export class AuthController {
       'auth',
       '/auth/login',
       loginDto,
+    );
+    return response.data;
+  }
+
+  @Post('oauth')
+  @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 10, windowMs: 15 * 60 * 1000 }) // 10 requests per 15 minutes
+  async oauth(@Body() oauthDto: any) {
+    const response = await this.httpClient.post(
+      'auth',
+      '/auth/oauth',
+      oauthDto,
     );
     return response.data;
   }

@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsOptional, MaxLength, IsIn } from 'class-validator';
+import { IsUUID, IsOptional, IsString, MaxLength, IsIn } from 'class-validator';
 
 export class SendFriendRequestDto {
   @IsUUID()
@@ -17,4 +17,9 @@ export class RespondFriendRequestDto {
   @IsString()
   @IsIn(['accepted', 'declined'])
   response: 'accepted' | 'declined';
+}
+
+export class RemoveFriendDto {
+  @IsUUID()
+  friendId: string;
 }

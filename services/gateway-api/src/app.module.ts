@@ -3,14 +3,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 
-// Controllers
+// Controllers - Updated for new architecture (6 services)
 import { AppController } from './app.controller';
 import { AuthController } from './controllers/auth.controller';
-import { UserController } from './controllers/user.controller';
-import { ServerController } from './controllers/server.controller';
-import { ChannelController } from './controllers/channel.controller';
-import { FriendController } from './controllers/friend.controller';
-import { DirectMessageController } from './controllers/dm.controller';
+import { UserSocialController } from './controllers/user-social.controller';
+import { ServerChannelController } from './controllers/server-channel.controller';
+import { MessageController } from './controllers/message.controller';
+import { MediaFileController } from './controllers/media-file.controller';
+import { RealtimeController } from './controllers/realtime.controller';
 import { HealthController } from './controllers/health.controller';
 
 // Services
@@ -46,11 +46,11 @@ import { LoggingMiddleware } from './middleware/logging.middleware';
   controllers: [
     AppController,
     AuthController,
-    UserController,
-    ServerController,
-    ChannelController,
-    FriendController,
-    DirectMessageController,
+    UserSocialController,
+    ServerChannelController,
+    MessageController,
+    MediaFileController,
+    RealtimeController,
     HealthController,
   ],
   providers: [

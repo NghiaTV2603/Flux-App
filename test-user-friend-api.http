@@ -1,0 +1,210 @@
+### Test User & Social Service Friend APIs
+### Base URL for User Service
+@baseUrl = http://localhost:3002
+@authToken = your-jwt-token-here
+@userId1 = user-id-1
+@userId2 = user-id-2
+@friendshipId = friendship-id
+
+### ============= USER PROFILE ENDPOINTS =============
+
+### Get User Profile
+GET {{baseUrl}}/users/{{userId1}}
+Authorization: Bearer {{authToken}}
+
+### Update User Profile
+PATCH {{baseUrl}}/users/{{userId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "displayName": "John Doe Updated",
+  "bio": "Updated bio for testing",
+  "avatarUrl": "https://example.com/avatar.jpg"
+}
+
+### Get User Status
+GET {{baseUrl}}/users/status/{{userId1}}
+Authorization: Bearer {{authToken}}
+
+### Update User Status
+PATCH {{baseUrl}}/users/{{userId1}}/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "customStatus": "Working on Flux app"
+}
+
+### Search Users
+GET {{baseUrl}}/users/search?q=john&currentUserId={{userId1}}
+Authorization: Bearer {{authToken}}
+
+### ============= FRIEND MANAGEMENT ENDPOINTS =============
+
+### Send Friend Request
+POST {{baseUrl}}/users/friends/request?requesterId={{userId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{userId2}}",
+  "message": "Hey! Let's be friends on Flux!"
+}
+
+### Respond to Friend Request (Accept)
+POST {{baseUrl}}/users/friends/respond?userId={{userId2}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendshipId": "{{friendshipId}}",
+  "response": "accepted"
+}
+
+### Respond to Friend Request (Decline)
+POST {{baseUrl}}/users/friends/respond?userId={{userId2}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendshipId": "{{friendshipId}}",
+  "response": "declined"
+}
+
+### Get Friends List
+GET {{baseUrl}}/users/friends?userId={{userId1}}
+Authorization: Bearer {{authToken}}
+
+### Get Pending Friend Requests (Received)
+GET {{baseUrl}}/users/friends/pending?userId={{userId1}}
+Authorization: Bearer {{authToken}}
+
+### Get Sent Friend Requests
+GET {{baseUrl}}/users/friends/sent?userId={{userId1}}
+Authorization: Bearer {{authToken}}
+
+### Remove Friend
+DELETE {{baseUrl}}/users/friends/remove?userId={{userId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendId": "{{userId2}}"
+}
+
+### ============= BLOCK MANAGEMENT ENDPOINTS =============
+
+### Block User
+POST {{baseUrl}}/users/block?blockerId={{userId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "blockedId": "{{userId2}}",
+  "reason": "Spam or inappropriate behavior"
+}
+
+### Unblock User
+DELETE {{baseUrl}}/users/unblock?blockerId={{userId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "blockedId": "{{userId2}}"
+}
+
+### Get Blocked Users
+GET {{baseUrl}}/users/blocked?userId={{userId1}}
+Authorization: Bearer {{authToken}}
+
+### ============= USER SETTINGS ENDPOINTS =============
+
+### Get User Settings
+GET {{baseUrl}}/users/{{userId1}}/settings
+Authorization: Bearer {{authToken}}
+
+### Update User Settings
+PATCH {{baseUrl}}/users/{{userId1}}/settings
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "notificationsEnabled": true,
+  "soundEnabled": false,
+  "allowDirectMessages": true,
+  "allowFriendRequests": true,
+  "privacySettings": {
+    "showOnlineStatus": true,
+    "showActivity": false
+  }
+}
+
+### ============= USER ACTIVITY ENDPOINTS =============
+
+### Create User Activity
+POST {{baseUrl}}/users/{{userId1}}/activities
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "activityType": "playing",
+  "name": "Valorant",
+  "details": "Competitive Match",
+  "state": "In Game",
+  "timestamps": {
+    "start": "2024-01-01T10:00:00Z"
+  },
+  "metadata": {
+    "rank": "Diamond",
+    "gameMode": "Competitive"
+  }
+}
+
+### Get User Activities
+GET {{baseUrl}}/users/{{userId1}}/activities
+Authorization: Bearer {{authToken}}
+
+### Clear User Activity
+DELETE {{baseUrl}}/users/{{userId1}}/activities?activityType=playing
+Authorization: Bearer {{authToken}}
+
+### Clear All User Activities
+DELETE {{baseUrl}}/users/{{userId1}}/activities
+Authorization: Bearer {{authToken}}
+
+### ============= FRIEND REQUEST FLOW EXAMPLE =============
+
+### Step 1: User1 sends friend request to User2
+POST {{baseUrl}}/users/friends/request?requesterId={{userId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{userId2}}",
+  "message": "Hi! I'd like to add you as a friend."
+}
+
+### Step 2: User2 checks pending requests
+GET {{baseUrl}}/users/friends/pending?userId={{userId2}}
+Authorization: Bearer {{authToken}}
+
+### Step 3: User2 accepts the request
+POST {{baseUrl}}/users/friends/respond?userId={{userId2}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendshipId": "{{friendshipId}}",
+  "response": "accepted"
+}
+
+### Step 4: Both users can see each other in friends list
+GET {{baseUrl}}/users/friends?userId={{userId1}}
+Authorization: Bearer {{authToken}}
+
+###
+GET {{baseUrl}}/users/friends?userId={{userId2}}
+Authorization: Bearer {{authToken}}
