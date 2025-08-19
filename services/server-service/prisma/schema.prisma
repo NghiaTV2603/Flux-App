@@ -19,6 +19,13 @@ enum ChannelType {
   forum
 }
 
+enum RoleType {
+  owner
+  admin
+  member
+  custom
+}
+
 enum VerificationLevel {
   none
   low
@@ -122,12 +129,14 @@ model ServerRole {
   id            String   @id @default(uuid())
   serverId      String   @map("server_id")
   name          String   // Role name
+  type          RoleType @default(custom) // Role type (owner, admin, member, custom)
   color         String?  // Hex color code
   position      Int      @default(0) // Role hierarchy position (higher = more powerful)
   permissions   BigInt   @default(0) // Role permissions bitfield
   isHoisted     Boolean  @default(false) @map("is_hoisted") // Show separately in member list
   isMentionable Boolean  @default(true) @map("is_mentionable") // Can be @mentioned
   isManaged     Boolean  @default(false) @map("is_managed") // Managed by bot/integration
+  isDefault     Boolean  @default(false) @map("is_default") // Default role for new members
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -136,8 +145,10 @@ model ServerRole {
   memberRoles MemberRole[]
 
   @@unique([serverId, name])
+  @@unique([serverId, type]) // Only one role per type per server
   @@index([serverId, position])
   @@index([isMentionable, serverId])
+  @@index([type, serverId])
   @@map("server_roles")
 }
 

@@ -1,9 +1,10 @@
 import { IsString, IsOptional, IsArray, IsBoolean, IsInt, Min, Max, IsEnum } from 'class-validator';
 import { ServerPermission } from '../enums/permissions.enum';
 
-export class CreateRoleDto {
+export class UpdateRoleDto {
+  @IsOptional()
   @IsString()
-  name: string;
+  name?: string;
 
   @IsOptional()
   @IsString()
@@ -13,17 +14,18 @@ export class CreateRoleDto {
   @IsInt()
   @Min(0)
   @Max(100)
-  position?: number = 0;
+  position?: number;
 
+  @IsOptional()
   @IsArray()
   @IsEnum(ServerPermission, { each: true })
-  permissions: ServerPermission[];
+  permissions?: ServerPermission[];
 
   @IsOptional()
   @IsBoolean()
-  isHoisted?: boolean = false;
+  isHoisted?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  isMentionable?: boolean = true;
+  isMentionable?: boolean;
 }

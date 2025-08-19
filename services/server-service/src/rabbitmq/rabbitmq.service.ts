@@ -133,4 +133,32 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }) {
     await this.publishEvent("server.member.updated", memberData);
   }
+
+  // Channel-specific event methods
+  async publishChannelCreated(channelData: {
+    channelId: string;
+    serverId: string;
+    name: string;
+    type: string;
+  }) {
+    await this.publishEvent("server.channel.created", channelData);
+  }
+
+  async publishChannelUpdated(channelData: {
+    channelId: string;
+    serverId: string;
+    name: string;
+    updatedBy: string;
+  }) {
+    await this.publishEvent("server.channel.updated", channelData);
+  }
+
+  async publishChannelDeleted(channelData: {
+    channelId: string;
+    serverId: string;
+    name: string;
+    deletedBy: string;
+  }) {
+    await this.publishEvent("server.channel.deleted", channelData);
+  }
 }

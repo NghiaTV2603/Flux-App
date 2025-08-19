@@ -1,0 +1,191 @@
+### Server Service API Testing - Roles & Permissions Management
+
+@baseUrl = http://localhost:3002
+@userId = test-user-123
+@serverId = {{server_id}}
+@roleId = {{role_id}}
+@memberId = {{member_id}}
+
+### 1. Create Server (automatically creates Owner role)
+POST {{baseUrl}}/servers?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "My Test Server",
+  "description": "A test server with role management",
+  "isPublic": false
+}
+
+### 2. Get Server with Roles
+GET {{baseUrl}}/servers/{{serverId}}?userId={{userId}}
+
+### 3. Get Server Roles
+GET {{baseUrl}}/servers/{{serverId}}/roles?userId={{userId}}
+
+### 4. Create Custom Role with Specific Permissions
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "Moderator",
+  "color": "#00ff00",
+  "position": 50,
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_CHANNEL_MEMBERS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ],
+  "isHoisted": true,
+  "isMentionable": true
+}
+
+### 5. Create Admin Role
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "Admin",
+  "color": "#ff0000",
+  "position": 80,
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_MEMBERS",
+    "MANAGE_CHANNEL_MEMBERS",
+    "MANAGE_ROLES",
+    "CREATE_INVITES",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ],
+  "isHoisted": true,
+  "isMentionable": false
+}
+
+### 6. Update Role
+PATCH {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "Senior Moderator",
+  "color": "#ffff00",
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_CHANNEL_MEMBERS",
+    "MANAGE_MEMBERS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ]
+}
+
+### 7. Get Server Members
+GET {{baseUrl}}/servers/{{serverId}}/members?userId={{userId}}
+
+### 8. Assign Role to Member
+POST {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}/roles/{{roleId}}?userId={{userId}}
+
+### 9. Remove Role from Member
+DELETE {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}/roles/{{roleId}}?userId={{userId}}
+
+### 10. Delete Role
+DELETE {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}?userId={{userId}}
+
+### Channel Management Tests
+
+### 11. Get Server Channels
+GET {{baseUrl}}/servers/{{serverId}}/channels?userId={{userId}}
+
+### 12. Create Public Text Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "announcements",
+  "type": "text",
+  "topic": "Server announcements and news",
+  "position": 1,
+  "isPrivate": false,
+  "isNsfw": false
+}
+
+### 13. Create Private Voice Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "Staff Meeting",
+  "type": "voice",
+  "position": 2,
+  "isPrivate": true,
+  "userLimit": 10,
+  "bitrate": 64000
+}
+
+### 14. Update Channel
+PATCH {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "updated-announcements",
+  "topic": "Updated server announcements",
+  "slowmodeDelay": 30
+}
+
+### 15. Get Channel Members
+GET {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members?userId={{userId}}
+
+### 16. Add Member to Private Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members?userId={{userId}}
+Content-Type: application/json
+
+{
+  "targetUserId": "another-user-456"
+}
+
+### 17. Remove Member from Channel
+DELETE {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members/another-user-456?userId={{userId}}
+
+### 18. Delete Channel
+DELETE {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}?userId={{userId}}
+
+### Member Management Tests
+
+### 19. Join Server (simulate another user)
+POST {{baseUrl}}/servers/join
+Content-Type: application/json
+
+{
+  "inviteCode": "{{invite_code}}",
+  "userId": "new-user-789"
+}
+
+### 20. Remove Member from Server
+DELETE {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}?userId={{userId}}
+
+### Permission Testing Scenarios
+
+### 21. Test Permission Denied (try to create role without permission)
+# First, create a regular member and try to create role
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId=regular-user-456
+Content-Type: application/json
+
+{
+  "name": "Should Fail",
+  "permissions": ["VIEW_CHANNELS"]
+}
+
+### 22. Test Channel Access (private channel without permission)
+GET {{baseUrl}}/servers/{{serverId}}/channels/{{privateChannelId}}/members?userId=regular-user-456
+
+### Available Permissions:
+# - MANAGE_CHANNELS: Create, edit, delete channels
+# - MANAGE_MEMBERS: Add/remove members from server  
+# - MANAGE_CHANNEL_MEMBERS: Add/remove members from channels
+# - MANAGE_ROLES: Create, edit, delete roles
+# - MANAGE_SERVER: Edit server settings
+# - CREATE_INVITES: Create server invites
+# - VIEW_CHANNELS: View public channels
+# - SEND_MESSAGES: Send messages in channels
+# - CONNECT_VOICE: Connect to voice channels
