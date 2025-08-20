@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { RabbitMQService } from "../rabbitmq/rabbitmq.service";
+import { UserClientService } from "../services/user-client.service";
 import { CreateServerDto } from "./dto/create-server.dto";
 import { UpdateServerDto } from "./dto/update-server.dto";
 import { JoinServerDto } from "./dto/join-server.dto";
@@ -24,7 +25,8 @@ import {
 export class ServerService {
   constructor(
     private prisma: PrismaService,
-    private rabbitMQ: RabbitMQService
+    private rabbitMQ: RabbitMQService,
+    private userClient: UserClientService
   ) {}
 
   // Helper function to check if member has role
@@ -51,6 +53,12 @@ export class ServerService {
   // Create new server
   async createServer(createServerDto: CreateServerDto, userId: string) {
     const inviteCode = this.generateInviteCode();
+
+    // Get user profile from user service
+    const userProfile = await this.userClient.getUserProfile(userId);
+    if (!userProfile) {
+      throw new NotFoundException("User not found");
+    }
 
     // Create server with roles and member in transaction
     const result = await this.prisma.$transaction(async (tx) => {
@@ -99,8 +107,8 @@ export class ServerService {
         data: {
           serverId: server.id,
           userId: userId,
-          username: "Owner", // TODO: Get from user service
-          displayName: "Owner",
+          username: userProfile.username,
+          displayName: userProfile.displayName,
         },
       });
 
@@ -272,10 +280,22 @@ export class ServerService {
   async joinServer(joinServerDto: JoinServerDto) {
     const { inviteCode, userId } = joinServerDto;
 
+    // Get user profile from user service
+    const userProfile = await this.userClient.getUserProfile(userId);
+    if (!userProfile) {
+      throw new NotFoundException("User not found");
+    }
+
     const server = await this.prisma.server.findUnique({
       where: { inviteCode },
       include: {
         members: true,
+        roles: {
+          where: {
+            type: "member",
+            isDefault: true,
+          },
+        },
       },
     });
 
@@ -291,15 +311,54 @@ export class ServerService {
       throw new ConflictException("You are already a member of this server");
     }
 
-    // Add user as member
-    const newMember = await this.prisma.serverMember.create({
-      data: {
-        serverId: server.id,
-        userId,
-        username: "Member", // TODO: Get from user service
-        displayName: "Member",
-        roles: [{ name: "member", id: "member-role" }], // JSON array
-      },
+    // Get default member role
+    const defaultMemberRole = server.roles.find(
+      (role) => role.type === "member" && role.isDefault
+    );
+    if (!defaultMemberRole) {
+      throw new NotFoundException("Default member role not found");
+    }
+
+    // Add user as member in transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Create server member
+      const newMember = await tx.serverMember.create({
+        data: {
+          serverId: server.id,
+          userId,
+          username: userProfile.username,
+          displayName: userProfile.displayName,
+        },
+      });
+
+      // Assign default member role
+      await tx.memberRole.create({
+        data: {
+          memberId: newMember.id,
+          roleId: defaultMemberRole.id,
+          assignedBy: userId, // Self-assigned when joining
+        },
+      });
+
+      // Add to all public channels
+      const publicChannels = await tx.channel.findMany({
+        where: {
+          serverId: server.id,
+          isPrivate: false,
+        },
+      });
+
+      if (publicChannels.length > 0) {
+        await tx.channelMember.createMany({
+          data: publicChannels.map((channel) => ({
+            channelId: channel.id,
+            userId: userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return newMember;
     });
 
     // Publish event
@@ -307,7 +366,7 @@ export class ServerService {
       serverId: server.id,
       serverName: server.name,
       userId,
-      memberId: newMember.id,
+      memberId: result.id,
     });
 
     return {
@@ -349,7 +408,24 @@ export class ServerService {
   // Get server members
   async getServerMembers(serverId: string, userId: string) {
     const server = await this.getServerById(serverId, userId);
-    return server.members;
+
+    // Get user profiles for all members
+    const userIds = server.members.map((member) => member.userId);
+    const userProfiles = await this.userClient.getUserProfiles(userIds);
+
+    // Enrich members with fresh user data
+    const enrichedMembers = server.members.map((member) => {
+      const profile = userProfiles.get(member.userId);
+      return {
+        ...member,
+        username: profile?.username || member.username,
+        displayName: profile?.displayName || member.displayName,
+        avatarUrl: profile?.avatarUrl,
+        email: profile?.email,
+      };
+    });
+
+    return enrichedMembers;
   }
 
   // Update member info

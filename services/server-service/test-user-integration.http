@@ -1,0 +1,86 @@
+### Test User Service Integration
+
+@baseUrl = http://localhost:3003
+@userServiceUrl = http://localhost:3001
+@userId = test-user-123
+
+### 1. First, create a user in User Service (if User Service is running)
+POST {{userServiceUrl}}/users
+Content-Type: application/json
+
+{
+  "id": "{{userId}}",
+  "username": "john_doe",
+  "displayName": "John Doe",
+  "email": "john@example.com"
+}
+
+### 2. Create Server (will fetch user data from User Service)
+POST {{baseUrl}}/servers?userId={{userId}}
+Content-Type: application/json
+
+{
+  "name": "John's Gaming Server",
+  "description": "A server for gaming enthusiasts",
+  "isPublic": false
+}
+
+### 3. Create another user for testing join functionality
+POST {{userServiceUrl}}/users
+Content-Type: application/json
+
+{
+  "id": "test-user-456",
+  "username": "jane_smith",
+  "displayName": "Jane Smith",
+  "email": "jane@example.com"
+}
+
+### 4. Join server with the second user (will fetch user data)
+POST {{baseUrl}}/servers/join
+Content-Type: application/json
+
+{
+  "inviteCode": "{{invite_code_from_step_2}}",
+  "userId": "test-user-456"
+}
+
+### 5. Get server members (will show enriched user data)
+GET {{baseUrl}}/servers/{{server_id}}/members?userId={{userId}}
+
+### 6. Test fallback when User Service is unavailable
+# Stop User Service and try creating another server
+POST {{baseUrl}}/servers?userId=fallback-user-789
+Content-Type: application/json
+
+{
+  "name": "Fallback Server",
+  "description": "Testing fallback when User Service is down"
+}
+
+### Expected Behavior:
+
+# When User Service is available:
+# - username and displayName will be fetched from User Service
+# - Additional fields like email and avatarUrl will be included
+
+# When User Service is unavailable:
+# - Fallback to generated username like "User789" (last 4 chars of userId)
+# - Service continues to work normally
+
+### User Service Mock Responses (for reference):
+
+# GET /users/{userId} should return:
+# {
+#   "id": "test-user-123",
+#   "username": "john_doe", 
+#   "displayName": "John Doe",
+#   "email": "john@example.com",
+#   "avatarUrl": "https://example.com/avatar.jpg"
+# }
+
+# POST /users/batch should accept:
+# {
+#   "userIds": ["user1", "user2", "user3"]
+# }
+# And return array of user objects
