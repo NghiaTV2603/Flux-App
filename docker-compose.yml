@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: flux_user
       POSTGRES_PASSWORD: flux_password
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -88,7 +88,7 @@ services:
       dockerfile: Dockerfile
     container_name: flux-auth-service
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_auth_db
@@ -97,7 +97,7 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - JWT_EXPIRES_IN=1h
       - JWT_REFRESH_EXPIRES_IN=7d
-      - PORT=3000
+      - PORT=3001
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,7 +109,7 @@ services:
       - flux-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -122,13 +122,13 @@ services:
       dockerfile: Dockerfile
     container_name: flux-user-service
     ports:
-      - "3002:3000"
+      - "3002:3002"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_user_db
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
-      - PORT=3000
+      - PORT=3002
     depends_on:
       postgres:
         condition: service_healthy
@@ -140,7 +140,7 @@ services:
       - flux-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -187,8 +187,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - AUTH_SERVICE_URL=http://auth-service:3000
-      - USER_SERVICE_URL=http://user-service:3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
       - SERVER_SERVICE_URL=http://server-service:3003
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
