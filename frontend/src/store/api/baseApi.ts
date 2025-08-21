@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../store';
+import type { RootState } from '../../store/store';
 
 // Base API configuration for RTK Query
 export const baseApi = createApi({

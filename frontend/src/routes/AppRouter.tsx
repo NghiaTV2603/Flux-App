@@ -12,6 +12,7 @@ import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ServersPage } from '@/pages/ServersPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ProfileSetupPage } from '@/pages/ProfileSetupPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 const router = createBrowserRouter([
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
           {
             path: 'settings',
             element: <SettingsPage />,
+          },
+          {
+            path: 'profile-setup',
+            element: <ProfileSetupPage />,
           },
         ],
       },
