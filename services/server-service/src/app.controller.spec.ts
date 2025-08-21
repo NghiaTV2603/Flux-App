@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
 
-describe('AppController', () => {
+describe("AppController", () => {
   let appController: AppController;
 
   beforeEach(async () => {
@@ -14,17 +14,17 @@ describe('AppController', () => {
     appController = app.get<AppController>(AppController);
   });
 
-  describe('root', () => {
+  describe("root", () => {
     it('should return "Server Service is running!"', () => {
-      expect(appController.getHello()).toBe('Server Service is running!');
+      expect(appController.getHello()).toBe("Server Service is running!");
     });
   });
 
-  describe('health', () => {
-    it('should return health status', () => {
+  describe("health", () => {
+    it("should return health status", () => {
       const health = appController.getHealth();
-      expect(health.status).toBe('ok');
-      expect(health.service).toBe('server-service');
+      expect(health.status).toBe("ok");
+      expect(health.service).toBe("server-service");
       expect(health.timestamp).toBeDefined();
     });
   });
