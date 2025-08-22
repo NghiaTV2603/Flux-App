@@ -1,0 +1,702 @@
+### 🌐 Gateway API - Complete Test Suite
+### Frontend sẽ chỉ gọi qua Gateway này (Port 3000)
+### Tất cả requests đều route qua API Gateway
+
+### Variables cho testing session
+@baseUrl = http://localhost:3000/api
+@testEmail = demarco1@gmail.com
+@testUsername = demarco1
+@testPassword = demarco1
+
+# Tokens sẽ được update sau khi login thành công
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc4ZDcyMC02ZDdkLTQwNDEtODRkYS01MmRhYmQxODliNmUiLCJpYXQiOjE3NTU4NDcwMDQsImV4cCI6MTc1NTg1MDYwNH0.ob7xBBQE-mRnTlQuQz4r4tbz8N75sfKyREcOE_h2T1Q
+@refreshToken = 0cf59fa3ba446fadb727f1225fe288e40e70c17dacad42eebb584a87b2f78fb2db113f27f1caeb4f815d5c3f34fb52363af7a1a02454476c3a55238ff6b30f7e
+
+# IDs sẽ được update từ API responses
+@testUserId = 5278d720-6d7d-4041-84da-52dabd189b6e
+@serverId = paste-server-id-here
+@channelId = paste-channel-id-here
+@roleId = paste-role-id-here
+@messageId = paste-message-id-here
+@fileId = paste-file-id-here
+
+### ============= HEALTH & STATUS CHECKS =============
+
+### Gateway Health Check
+GET {{baseUrl}}/health
+
+### All Services Health Check
+GET {{baseUrl}}/health/services
+
+### ============= AUTHENTICATION (No Auth Required) =============
+
+### 1. Register New User
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "username": "{{testUsername}}",
+  "password": "{{testPassword}}"
+}
+
+### 2. Login User (Copy accessToken từ response)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+### 3. OAuth Login (Google example)
+POST {{baseUrl}}/auth/oauth
+Content-Type: application/json
+
+{
+  "provider": "google",
+  "code": "oauth-authorization-code",
+  "redirectUri": "http://localhost:3000/auth/callback"
+}
+
+### 4. Forgot Password
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}"
+}
+
+### 5. Reset Password (cần token từ email)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "reset-token-from-email",
+  "newPassword": "newpassword123"
+}
+
+### 6. Refresh Token
+POST {{baseUrl}}/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ============= USER PROFILE MANAGEMENT (Auth Required) =============
+
+### 7. Get User Profile
+GET {{baseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 8. Update User Profile
+PATCH {{baseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Frontend User Updated",
+  "bio": "Testing via Gateway API",
+  "avatarUrl": "https://example.com/avatar.jpg",
+  "customStatus": "Building with Gateway"
+}
+
+### 9. Get User Status
+GET {{baseUrl}}/users/status/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 10. Update User Status
+PATCH {{baseUrl}}/users/{{testUserId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "customStatus": "Testing Gateway API"
+}
+
+### 11. Search Users
+GET {{baseUrl}}/users?q=frontend&currentUserId={{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= FRIEND MANAGEMENT (Auth Required) =============
+
+### 12. Send Friend Request
+POST {{baseUrl}}/friends/request
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "requesterId": "{{testUserId}}",
+  "addresseeId": "another-user-id",
+  "message": "Friend request via Gateway!"
+}
+
+### 13. Accept Friend Request
+POST {{baseUrl}}/friends/accept
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{testUserId}}",
+  "friendshipId": "friendship-id-from-request"
+}
+
+### 14. Block User
+POST {{baseUrl}}/friends/block
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "blockerId": "{{testUserId}}",
+  "blockedId": "user-to-block-id",
+  "reason": "Testing block via Gateway"
+}
+
+### 15. Get Friends List
+GET {{baseUrl}}/friends
+Authorization: Bearer {{accessToken}}
+
+### 16. Get Pending Friend Requests
+GET {{baseUrl}}/friends/pending
+Authorization: Bearer {{accessToken}}
+
+### 17. Get Blocked Users
+GET {{baseUrl}}/friends/blocked
+Authorization: Bearer {{accessToken}}
+
+### 18. Remove Friend
+DELETE {{baseUrl}}/friends/remove
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{testUserId}}",
+  "friendId": "friend-id-to-remove"
+}
+
+### ============= SERVER MANAGEMENT (Auth Required) =============
+
+### 19. Create Server
+POST {{baseUrl}}/servers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Gateway Test Server",
+  "description": "Server created via Gateway API",
+  "isPublic": false
+}
+
+### 20. Get My Servers
+GET {{baseUrl}}/servers/my-servers
+Authorization: Bearer {{accessToken}}
+
+### 21. Get Server Details
+GET {{baseUrl}}/servers/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### 22. Update Server
+PATCH {{baseUrl}}/servers/{{serverId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Gateway Server",
+  "description": "Updated via Gateway API",
+  "isPublic": true
+}
+
+### 23. Generate Server Invite
+POST {{baseUrl}}/servers/{{serverId}}/invite
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "expiresIn": 7,
+  "maxUses": 10
+}
+
+### 24. Join Server
+POST {{baseUrl}}/servers/join
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "inviteCode": "invite-code-from-generate"
+}
+
+### 25. Get Server Members
+GET {{baseUrl}}/servers/{{serverId}}/members
+Authorization: Bearer {{accessToken}}
+
+### 26. Update Server Member
+PATCH {{baseUrl}}/servers/{{serverId}}/members/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nickname": "Gateway Tester",
+  "roleIds": ["role-id-here"]
+}
+
+### 27. Remove Server Member
+DELETE {{baseUrl}}/servers/{{serverId}}/members/member-id-to-remove
+Authorization: Bearer {{accessToken}}
+
+### ============= CHANNEL MANAGEMENT (Auth Required) =============
+
+### 28. Create Text Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "gateway-testing",
+  "type": "text",
+  "topic": "Channel for testing Gateway API",
+  "position": 1,
+  "isPrivate": false,
+  "isNsfw": false,
+  "slowmodeDelay": 0
+}
+
+### 29. Create Voice Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Gateway Voice",
+  "type": "voice",
+  "position": 2,
+  "isPrivate": false,
+  "userLimit": 10,
+  "bitrate": 64000
+}
+
+### 30. Get Channel Details
+GET {{baseUrl}}/channels/{{channelId}}
+Authorization: Bearer {{accessToken}}
+
+### 31. Update Channel
+PATCH {{baseUrl}}/channels/{{channelId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "updated-gateway-testing",
+  "topic": "Updated channel via Gateway API",
+  "slowmodeDelay": 30
+}
+
+### 32. Get Channel Members
+GET {{baseUrl}}/channels/{{channelId}}/members
+Authorization: Bearer {{accessToken}}
+
+### 33. Add Member to Private Channel
+POST {{baseUrl}}/channels/{{channelId}}/members
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "targetUserId": "user-id-to-add"
+}
+
+### 34. Remove Member from Channel
+DELETE {{baseUrl}}/channels/{{channelId}}/members/member-id-to-remove
+Authorization: Bearer {{accessToken}}
+
+### ============= ROLE MANAGEMENT (Auth Required) =============
+
+### 35. Get Server Roles
+GET {{baseUrl}}/servers/{{serverId}}/roles
+Authorization: Bearer {{accessToken}}
+
+### 36. Create Role
+POST {{baseUrl}}/servers/{{serverId}}/roles
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Gateway Tester",
+  "color": "#00ff00",
+  "position": 50,
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ],
+  "isHoisted": true,
+  "isMentionable": true
+}
+
+### 37. Update Role
+PATCH {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Senior Gateway Tester",
+  "color": "#ff0000",
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_MEMBERS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ]
+}
+
+### 38. Assign Role to Member
+POST {{baseUrl}}/servers/{{serverId}}/members/{{testUserId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### 39. Remove Role from Member
+DELETE {{baseUrl}}/servers/{{serverId}}/members/{{testUserId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= MESSAGE MANAGEMENT (Auth Required) =============
+
+### 40. Send Message to Channel
+POST {{baseUrl}}/channels/{{channelId}}/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Hello from Gateway API! 🚀",
+  "type": "text"
+}
+
+### 41. Get Channel Messages
+GET {{baseUrl}}/channels/{{channelId}}/messages?limit=20&before=message-id
+Authorization: Bearer {{accessToken}}
+
+### 42. Update Message
+PATCH {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Updated message via Gateway API! ✨"
+}
+
+### 43. Delete Message
+DELETE {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}
+Authorization: Bearer {{accessToken}}
+
+### 44. Add Reaction to Message
+POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "emoji": "👍",
+  "userId": "{{testUserId}}"
+}
+
+### 45. Remove Reaction from Message
+DELETE {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions/👍/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 46. Send Direct Message
+POST {{baseUrl}}/dm/send
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "recipientId": "recipient-user-id",
+  "content": "Direct message via Gateway API! 💬"
+}
+
+### 47. Get DM Conversation
+GET {{baseUrl}}/dm/conversation/recipient-user-id?limit=20
+Authorization: Bearer {{accessToken}}
+
+### 48. Search Messages
+GET {{baseUrl}}/messages/search?query=gateway&channelId={{channelId}}&limit=10
+Authorization: Bearer {{accessToken}}
+
+### ============= FILE & MEDIA MANAGEMENT (Auth Required) =============
+
+### 49. Upload File
+POST {{baseUrl}}/files/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Add file in form data:
+# file: [select file]
+# channelId: {{channelId}}
+# description: File uploaded via Gateway API
+
+### 50. Upload Multiple Files
+POST {{baseUrl}}/files/upload-multiple
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Add multiple files in form data:
+# files: [select multiple files]
+# channelId: {{channelId}}
+
+### 51. Get File Details
+GET {{baseUrl}}/files/{{fileId}}
+Authorization: Bearer {{accessToken}}
+
+### 52. Get User Files
+GET {{baseUrl}}/files/user/{{testUserId}}?limit=20&type=image
+Authorization: Bearer {{accessToken}}
+
+### 53. Upload Avatar
+POST {{baseUrl}}/avatars/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Add image file in form data:
+# avatar: [select image file]
+
+### 54. Delete Avatar
+DELETE {{baseUrl}}/avatars/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 55. Upload Server Icon
+POST {{baseUrl}}/servers/{{serverId}}/icon
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Add image file in form data:
+# icon: [select image file]
+
+### 56. Share File
+POST {{baseUrl}}/files/{{fileId}}/share
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "expiresIn": 24,
+  "allowDownload": true
+}
+
+### 57. Get File Thumbnail
+GET {{baseUrl}}/files/{{fileId}}/thumbnail?size=200x200
+Authorization: Bearer {{accessToken}}
+
+### 58. Download File
+GET {{baseUrl}}/files/{{fileId}}/download
+Authorization: Bearer {{accessToken}}
+
+### ============= REALTIME FEATURES (Auth Required) =============
+
+### 59. Connect WebSocket
+GET {{baseUrl}}/ws/connect
+Authorization: Bearer {{accessToken}}
+
+### 60. Disconnect WebSocket
+POST {{baseUrl}}/ws/disconnect
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Manual disconnect"
+}
+
+### 61. Join Voice Channel
+POST {{baseUrl}}/voice/channels/{{channelId}}/join
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muted": false,
+  "deafened": false
+}
+
+### 62. Leave Voice Channel
+POST {{baseUrl}}/voice/channels/{{channelId}}/leave
+Authorization: Bearer {{accessToken}}
+
+### 63. Get Voice Channel Users
+GET {{baseUrl}}/voice/channels/{{channelId}}/users
+Authorization: Bearer {{accessToken}}
+
+### 64. Mute User in Voice
+PATCH {{baseUrl}}/voice/channels/{{channelId}}/users/{{testUserId}}/mute
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muted": true
+}
+
+### 65. Start Screen Share
+POST {{baseUrl}}/voice/channels/{{channelId}}/screen-share/start
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "quality": "high",
+  "fps": 30
+}
+
+### 66. Stop Screen Share
+POST {{baseUrl}}/voice/channels/{{channelId}}/screen-share/stop
+Authorization: Bearer {{accessToken}}
+
+### 67. Update User Presence
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "activity": {
+    "type": "playing",
+    "name": "Testing Gateway API",
+    "details": "In development mode"
+  }
+}
+
+### 68. Get Server Presence
+GET {{baseUrl}}/presence/server/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### 69. Start Typing Indicator
+POST {{baseUrl}}/typing/start
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "channelId": "{{channelId}}"
+}
+
+### 70. Stop Typing Indicator
+POST {{baseUrl}}/typing/stop
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "channelId": "{{channelId}}"
+}
+
+### ============= NOTIFICATIONS (Auth Required) =============
+
+### 71. Get Notifications
+GET {{baseUrl}}/notifications?limit=20&unreadOnly=true
+Authorization: Bearer {{accessToken}}
+
+### 72. Mark Notification as Read
+PATCH {{baseUrl}}/notifications/notification-id
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "read": true
+}
+
+### 73. Delete Notification
+DELETE {{baseUrl}}/notifications/notification-id
+Authorization: Bearer {{accessToken}}
+
+### 74. Update Notification Settings
+POST {{baseUrl}}/notifications/settings
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "friendRequests": true,
+  "directMessages": true,
+  "serverMessages": false,
+  "emailNotifications": false,
+  "pushNotifications": true
+}
+
+### 75. Get Notification Settings
+GET {{baseUrl}}/notifications/settings
+Authorization: Bearer {{accessToken}}
+
+### ============= CLEANUP OPERATIONS =============
+
+### 76. Delete Channel
+DELETE {{baseUrl}}/channels/{{channelId}}
+Authorization: Bearer {{accessToken}}
+
+### 77. Delete Role
+DELETE {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### 78. Leave Server
+POST {{baseUrl}}/servers/{{serverId}}/leave
+Authorization: Bearer {{accessToken}}
+
+### 79. Delete Server (Owner only)
+DELETE {{baseUrl}}/servers/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= ERROR TESTING =============
+
+### 80. Test Rate Limiting (Send multiple times quickly)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@email.com",
+  "password": "wrongpassword"
+}
+
+### 81. Test Invalid Token
+GET {{baseUrl}}/users/{{testUserId}}
+Authorization: Bearer invalid-token-here
+
+### 82. Test Missing Authorization
+GET {{baseUrl}}/servers/{{serverId}}
+
+### 83. Test Non-existent Resource
+GET {{baseUrl}}/servers/non-existent-server-id
+Authorization: Bearer {{accessToken}}
+
+### 84. Test Invalid Data
+POST {{baseUrl}}/servers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "a".repeat(1001)
+}
+
+### ============= TESTING NOTES =============
+
+### 🎯 Frontend Integration Points:
+# Tất cả endpoints này sẽ được Frontend sử dụng
+# Gateway sẽ handle authentication, rate limiting, và routing
+# Response format giống như gọi trực tiếp services
+
+### 📊 Rate Limits:
+# - Auth: 3-10 requests/15min
+# - File Upload: 5-20 requests/min  
+# - Messaging: 30-50 requests/min
+# - General API: 50-100 requests/min
+# - Real-time: 100-200 requests/min
+
+### 🔧 Testing Workflow:
+# 1. Start services: docker-compose up -d
+# 2. Register & Login (get accessToken)
+# 3. Test user profile features
+# 4. Test server/channel features
+# 5. Test messaging features
+# 6. Test file upload features
+# 7. Test real-time features
+
+### 🛡️ Security Features:
+# - JWT token validation
+# - Rate limiting per endpoint
+# - Permission checking
+# - Input validation
+# - CORS configuration
+
+### 🚀 Performance Features:
+# - Response caching
+# - Connection pooling
+# - Circuit breaker pattern
+# - Request/response logging
+# - Health monitoring

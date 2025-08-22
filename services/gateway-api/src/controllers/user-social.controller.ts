@@ -13,6 +13,7 @@ import {
 import { HttpClientService } from '../services/http-client.service';
 import { AuthGuard } from '../guards/auth.guard';
 import { RateLimit, RateLimitGuard } from '../guards/rate-limit.guard';
+import { log } from 'console';
 
 /**
  * User & Social Controller - Handles user profiles and social features
@@ -29,6 +30,7 @@ export class UserSocialController {
   @Get('users/:id')
   @RateLimit({ limit: 100, windowMs: 60 * 1000 }) // 100 requests per minute
   async getUserById(@Param('id') id: string, @Request() req: any) {
+    console.log('------ check data getUserById', id);
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
       'user-social',

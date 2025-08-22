@@ -1,0 +1,374 @@
+### 👤 User Service API Tests
+### Base URL: http://localhost:3002
+### Service Port: 3002
+
+### Variables for this session
+@baseUrl = http://localhost:3002
+@testUserId1 = test-user-123
+@testUserId2 = test-user-456
+@testUserId3 = test-user-789
+
+# Get token from Auth Service login first, then paste here:
+@authToken = paste-your-jwt-token-here
+
+### ============= HEALTH CHECK =============
+
+### Health Check - Direct User Service
+GET {{baseUrl}}/health
+
+### ============= USER PROFILE MANAGEMENT =============
+
+### Get User Profile by ID
+GET {{baseUrl}}/users/{{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Get User Profile by Email
+GET {{baseUrl}}/users/test@example.com
+Authorization: Bearer {{authToken}}
+
+### Update User Profile
+PATCH {{baseUrl}}/users/{{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "displayName": "John Doe Updated",
+  "bio": "Software developer passionate about building great apps",
+  "avatarUrl": "https://example.com/avatar.jpg",
+  "customStatus": "Working on Flux app"
+}
+
+### Get User Status
+GET {{baseUrl}}/users/status/{{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Update User Status
+PATCH {{baseUrl}}/users/{{testUserId1}}/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "customStatus": "Building something awesome"
+}
+
+### Update Status to Away
+PATCH {{baseUrl}}/users/{{testUserId1}}/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "away",
+  "customStatus": "Taking a break"
+}
+
+### Update Status to Do Not Disturb
+PATCH {{baseUrl}}/users/{{testUserId1}}/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "status": "dnd",
+  "customStatus": "In a meeting"
+}
+
+### ============= USER SEARCH =============
+
+### Search Users by Query
+GET {{baseUrl}}/users/search?q=john&currentUserId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Search Users with Empty Query
+GET {{baseUrl}}/users/search?q=&currentUserId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Search Users - No Results
+GET {{baseUrl}}/users/search?q=nonexistentuser&currentUserId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### ============= FRIEND REQUEST MANAGEMENT =============
+
+### Send Friend Request
+POST {{baseUrl}}/users/friends/request?requesterId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{testUserId2}}",
+  "message": "Hey! Let's be friends on Flux!"
+}
+
+### Send Friend Request without Message
+POST {{baseUrl}}/users/friends/request?requesterId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{testUserId3}}"
+}
+
+### Send Friend Request to Same User (Should Fail)
+POST {{baseUrl}}/users/friends/request?requesterId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{testUserId1}}",
+  "message": "Trying to friend myself"
+}
+
+### Get Pending Friend Requests (Received)
+GET {{baseUrl}}/users/friends/pending?userId={{testUserId2}}
+Authorization: Bearer {{authToken}}
+
+### Get Sent Friend Requests
+GET {{baseUrl}}/users/friends/sent?userId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Respond to Friend Request - Accept
+POST {{baseUrl}}/users/friends/respond?userId={{testUserId2}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendshipId": "friendship-id-from-pending-request",
+  "response": "accepted"
+}
+
+### Respond to Friend Request - Decline
+POST {{baseUrl}}/users/friends/respond?userId={{testUserId3}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendshipId": "friendship-id-from-pending-request",
+  "response": "declined"
+}
+
+### Get Friends List
+GET {{baseUrl}}/users/friends?userId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Get Friends List for User 2
+GET {{baseUrl}}/users/friends?userId={{testUserId2}}
+Authorization: Bearer {{authToken}}
+
+### Remove Friend
+DELETE {{baseUrl}}/users/friends/remove?userId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "friendId": "{{testUserId2}}"
+}
+
+### ============= BLOCK MANAGEMENT =============
+
+### Block User
+POST {{baseUrl}}/users/block?blockerId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "blockedId": "{{testUserId3}}",
+  "reason": "Spam or inappropriate behavior"
+}
+
+### Block User without Reason
+POST {{baseUrl}}/users/block?blockerId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "blockedId": "another-user-id"
+}
+
+### Get Blocked Users
+GET {{baseUrl}}/users/blocked?userId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+
+### Unblock User
+DELETE {{baseUrl}}/users/unblock?blockerId={{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "blockedId": "{{testUserId3}}"
+}
+
+### Try to Send Friend Request to Blocked User (Should Fail)
+POST {{baseUrl}}/users/friends/request?requesterId={{testUserId3}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{testUserId1}}",
+  "message": "This should fail if blocked"
+}
+
+### ============= USER SETTINGS =============
+
+### Get User Settings
+GET {{baseUrl}}/users/{{testUserId1}}/settings
+Authorization: Bearer {{authToken}}
+
+### Update User Settings - Theme and Notifications
+PATCH {{baseUrl}}/users/{{testUserId1}}/settings
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "notificationsEnabled": true,
+  "soundEnabled": false,
+  "allowDirectMessages": true,
+  "allowFriendRequests": true
+}
+
+### Update Privacy Settings
+PATCH {{baseUrl}}/users/{{testUserId1}}/settings
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "privacySettings": {
+    "showOnlineStatus": true,
+    "showActivity": false,
+    "allowServerInvites": true
+  }
+}
+
+### Update Notification Preferences
+PATCH {{baseUrl}}/users/{{testUserId1}}/settings
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "notificationSettings": {
+    "friendRequests": true,
+    "directMessages": true,
+    "serverMessages": false,
+    "emailNotifications": false
+  }
+}
+
+### ============= USER ACTIVITY =============
+
+### Create Gaming Activity
+POST {{baseUrl}}/users/{{testUserId1}}/activities
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "activityType": "playing",
+  "name": "Valorant",
+  "details": "Competitive Match",
+  "state": "In Game - Ascent",
+  "timestamps": {
+    "start": "2024-01-01T10:00:00Z"
+  },
+  "metadata": {
+    "rank": "Diamond",
+    "gameMode": "Competitive"
+  }
+}
+
+### Create Listening Activity
+POST {{baseUrl}}/users/{{testUserId1}}/activities
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "activityType": "listening",
+  "name": "Spotify",
+  "details": "The Weeknd",
+  "state": "Blinding Lights",
+  "timestamps": {
+    "start": "2024-01-01T11:00:00Z",
+    "end": "2024-01-01T11:04:00Z"
+  }
+}
+
+### Create Custom Activity
+POST {{baseUrl}}/users/{{testUserId1}}/activities
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "activityType": "custom",
+  "name": "Working on Flux",
+  "state": "Building the future of chat"
+}
+
+### Get User Activities
+GET {{baseUrl}}/users/{{testUserId1}}/activities
+Authorization: Bearer {{authToken}}
+
+### Clear Specific Activity
+DELETE {{baseUrl}}/users/{{testUserId1}}/activities?activityType=playing
+Authorization: Bearer {{authToken}}
+
+### Clear All Activities
+DELETE {{baseUrl}}/users/{{testUserId1}}/activities
+Authorization: Bearer {{authToken}}
+
+### ============= BATCH OPERATIONS =============
+
+### Get Multiple Users (if endpoint exists)
+POST {{baseUrl}}/users/batch
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "userIds": ["{{testUserId1}}", "{{testUserId2}}", "{{testUserId3}}"]
+}
+
+### ============= ERROR SCENARIOS =============
+
+### Get Non-existent User (Should Return 404)
+GET {{baseUrl}}/users/non-existent-user-id
+Authorization: Bearer {{authToken}}
+
+### Update Profile with Invalid Data
+PATCH {{baseUrl}}/users/{{testUserId1}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "displayName": "",
+  "bio": "a".repeat(1001)
+}
+
+### Send Friend Request without Authorization (Should Fail)
+POST {{baseUrl}}/users/friends/request?requesterId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "addresseeId": "{{testUserId2}}"
+}
+
+### ============= TESTING NOTES =============
+
+### Expected Status Codes:
+# GET requests: 200 OK or 404 Not Found
+# POST requests: 201 Created or 400/409 for errors
+# PATCH requests: 200 OK or 400 Bad Request
+# DELETE requests: 200 OK or 404 Not Found
+
+### Friend Request States:
+# - pending: Initial state when request is sent
+# - accepted: When addressee accepts the request
+# - declined: When addressee declines the request
+# - blocked: When users are blocked from each other
+
+### User Status Options:
+# - online: User is active
+# - away: User is idle/away
+# - dnd: Do not disturb
+# - offline: User is offline (set automatically)
+
+### Activity Types:
+# - playing: Gaming activities
+# - listening: Music/audio activities  
+# - watching: Video/streaming activities
+# - custom: Custom user-defined activities

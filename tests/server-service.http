@@ -1,0 +1,409 @@
+### 🏠 Server Service API Tests
+### Base URL: http://localhost:3003
+### Service Port: 3003
+
+### Variables for this session
+@baseUrl = http://localhost:3003
+@testUserId1 = test-user-123
+@testUserId2 = test-user-456
+@testUserId3 = test-user-789
+
+# These will be populated from API responses:
+@serverId = paste-server-id-here
+@roleId = paste-role-id-here
+@channelId = paste-channel-id-here
+@memberId = paste-member-id-here
+@inviteCode = paste-invite-code-here
+
+### ============= HEALTH CHECK =============
+
+### Health Check - Direct Server Service
+GET {{baseUrl}}/health
+
+### ============= SERVER MANAGEMENT =============
+
+### Create New Server (Auto-creates Owner & Members roles + default channels)
+POST {{baseUrl}}/servers?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "My Awesome Server",
+  "description": "A test server for development and gaming",
+  "isPublic": false
+}
+
+# Copy server ID from create server response and paste above
+# @serverId = {{createServer.response.body.id}}
+
+### Get Server Details with Roles and Channels
+GET {{baseUrl}}/servers/{{serverId}}?userId={{testUserId1}}
+
+### Get User's Servers
+GET {{baseUrl}}/servers/my-servers?userId={{testUserId1}}
+
+### Update Server Information
+PATCH {{baseUrl}}/servers/{{serverId}}?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Updated Server Name",
+  "description": "Updated description for the server",
+  "isPublic": true
+}
+
+### Generate Server Invite Code
+POST {{baseUrl}}/servers/{{serverId}}/invite?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "expiresIn": 7,
+  "maxUses": 10
+}
+
+### Store invite code from response
+@inviteCode = {{generateInvite.response.body.inviteCode}}
+
+### ============= ROLE MANAGEMENT =============
+
+### Get All Server Roles
+GET {{baseUrl}}/servers/{{serverId}}/roles?userId={{testUserId1}}
+
+### Create Moderator Role
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Moderator",
+  "color": "#00ff00",
+  "position": 50,
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_CHANNEL_MEMBERS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ],
+  "isHoisted": true,
+  "isMentionable": true
+}
+
+### Store role ID from response
+@roleId = {{createRole.response.body.id}}
+
+### Create Admin Role
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Admin",
+  "color": "#ff0000",
+  "position": 80,
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_MEMBERS",
+    "MANAGE_CHANNEL_MEMBERS",
+    "MANAGE_ROLES",
+    "CREATE_INVITES",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE",
+    "MANAGE_SERVER"
+  ],
+  "isHoisted": true,
+  "isMentionable": false
+}
+
+### Create VIP Role (Limited Permissions)
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "VIP",
+  "color": "#ffd700",
+  "position": 30,
+  "permissions": [
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE",
+    "CREATE_INVITES"
+  ],
+  "isHoisted": false,
+  "isMentionable": true
+}
+
+### Update Role Permissions
+PATCH {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Senior Moderator",
+  "color": "#ffff00",
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_CHANNEL_MEMBERS",
+    "MANAGE_MEMBERS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE"
+  ],
+  "position": 60
+}
+
+### ============= CHANNEL MANAGEMENT =============
+
+### Get All Server Channels
+GET {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+
+### Create Public Text Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "announcements",
+  "type": "text",
+  "topic": "Server announcements and important news",
+  "position": 1,
+  "isPrivate": false,
+  "isNsfw": false,
+  "slowmodeDelay": 30
+}
+
+### Store channel ID from response
+@channelId = {{createChannel.response.body.id}}
+
+### Create Private Text Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "staff-only",
+  "type": "text",
+  "topic": "Private channel for staff members",
+  "position": 2,
+  "isPrivate": true,
+  "isNsfw": false,
+  "slowmodeDelay": 0
+}
+
+### Create Public Voice Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Lounge",
+  "type": "voice",
+  "position": 3,
+  "isPrivate": false,
+  "userLimit": 15,
+  "bitrate": 64000
+}
+
+### Create Private Voice Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Staff Meeting",
+  "type": "voice",
+  "position": 4,
+  "isPrivate": true,
+  "userLimit": 10,
+  "bitrate": 128000
+}
+
+### Create NSFW Text Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "nsfw-content",
+  "type": "text",
+  "topic": "NSFW content - 18+ only",
+  "position": 5,
+  "isPrivate": false,
+  "isNsfw": true,
+  "slowmodeDelay": 60
+}
+
+### Update Channel Settings
+PATCH {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "updated-announcements",
+  "topic": "Updated server announcements and news",
+  "slowmodeDelay": 60,
+  "position": 0
+}
+
+### ============= MEMBER MANAGEMENT =============
+
+### Get All Server Members
+GET {{baseUrl}}/servers/{{serverId}}/members?userId={{testUserId1}}
+
+### Join Server (Simulate another user joining)
+POST {{baseUrl}}/servers/join
+Content-Type: application/json
+
+{
+  "inviteCode": "{{inviteCode}}",
+  "userId": "{{testUserId2}}"
+}
+
+### Store member ID from response
+@memberId = {{joinServer.response.body.member.id}}
+
+### Join Server with Third User
+POST {{baseUrl}}/servers/join
+Content-Type: application/json
+
+{
+  "inviteCode": "{{inviteCode}}",
+  "userId": "{{testUserId3}}"
+}
+
+### Update Member (Change nickname and role)
+PATCH {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "nickname": "Awesome Member",
+  "roleIds": ["{{roleId}}"]
+}
+
+### Assign Role to Member
+POST {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}/roles/{{roleId}}?userId={{testUserId1}}
+
+### Remove Role from Member
+DELETE {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}/roles/{{roleId}}?userId={{testUserId1}}
+
+### ============= CHANNEL MEMBER MANAGEMENT =============
+
+### Get Channel Members (Public Channel)
+GET {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members?userId={{testUserId1}}
+
+### Add Member to Private Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "targetUserId": "{{testUserId2}}"
+}
+
+### Remove Member from Private Channel
+DELETE {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members/{{testUserId2}}?userId={{testUserId1}}
+
+### ============= PERMISSION TESTING =============
+
+### Test Permission Denied - Regular Member tries to create role (Should Fail)
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{testUserId2}}
+Content-Type: application/json
+
+{
+  "name": "Should Fail Role",
+  "permissions": ["VIEW_CHANNELS"]
+}
+
+### Test Permission Denied - Access Private Channel without permission (Should Fail)
+GET {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}/members?userId={{testUserId2}}
+
+### Test Permission Denied - Delete channel without permission (Should Fail)
+DELETE {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}?userId={{testUserId2}}
+
+### ============= CLEANUP OPERATIONS =============
+
+### Remove Member from Server
+DELETE {{baseUrl}}/servers/{{serverId}}/members/{{memberId}}?userId={{testUserId1}}
+
+### Delete Channel
+DELETE {{baseUrl}}/servers/{{serverId}}/channels/{{channelId}}?userId={{testUserId1}}
+
+### Delete Role
+DELETE {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}?userId={{testUserId1}}
+
+### Delete Server (Owner only)
+DELETE {{baseUrl}}/servers/{{serverId}}?userId={{testUserId1}}
+
+### ============= ERROR SCENARIOS =============
+
+### Try to Create Server with Invalid Data (Should Fail)
+POST {{baseUrl}}/servers?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "a".repeat(1001)
+}
+
+### Try to Join with Invalid Invite Code (Should Fail)
+POST {{baseUrl}}/servers/join
+Content-Type: application/json
+
+{
+  "inviteCode": "INVALID_CODE",
+  "userId": "{{testUserId2}}"
+}
+
+### Try to Access Non-existent Server (Should Return 404)
+GET {{baseUrl}}/servers/non-existent-server-id?userId={{testUserId1}}
+
+### Try to Create Role with Invalid Permissions (Should Fail)
+POST {{baseUrl}}/servers/{{serverId}}/roles?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "Invalid Role",
+  "permissions": ["INVALID_PERMISSION"]
+}
+
+### Try to Create Channel with Invalid Type (Should Fail)
+POST {{baseUrl}}/servers/{{serverId}}/channels?userId={{testUserId1}}
+Content-Type: application/json
+
+{
+  "name": "invalid-channel",
+  "type": "invalid_type"
+}
+
+### ============= TESTING NOTES =============
+
+### Available Permissions:
+# Server Management:
+# - MANAGE_SERVER: Edit server settings
+# - MANAGE_MEMBERS: Add/remove server members
+# - CREATE_INVITES: Create server invites
+
+# Channel Management:
+# - MANAGE_CHANNELS: Create, edit, delete channels
+# - MANAGE_CHANNEL_MEMBERS: Add/remove members from channels
+# - VIEW_CHANNELS: View public channels
+# - SEND_MESSAGES: Send messages in channels
+
+# Voice Permissions:
+# - CONNECT_VOICE: Connect to voice channels
+
+# Role Management:
+# - MANAGE_ROLES: Create, edit, delete roles
+
+### Channel Types:
+# - text: Text-based channels for messaging
+# - voice: Voice channels for audio communication
+
+### Default Roles Created:
+# - Owner: Full permissions (position: 100)
+# - Members: Basic permissions (position: 0)
+
+### Default Channels Created:
+# - "general": Public text channel
+# - "General": Public voice channel
+
+### Expected Status Codes:
+# Success: 200 OK, 201 Created
+# Client Errors: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
+# Server Errors: 500 Internal Server Error
+
+### Role Position System:
+# Higher position = Higher priority
+# Owner role always has highest position (100)
+# Members role always has lowest position (0)
+# Custom roles can have positions 1-99

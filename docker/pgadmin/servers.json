@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Flux PostgreSQL",
+      "Group": "Flux App",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "flux_db",
+      "Username": "flux_user",
+      "Password": "flux_password",
+      "SSLMode": "prefer",
+      "Comment": "Flux App Main Database"
+    }
+  }
+}

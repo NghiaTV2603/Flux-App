@@ -1,113 +1,152 @@
-### Test Auth Service Endpoints
+# 🧪 Flux API Testing Suite
+# 
+# 🌟 RECOMMENDED: Sử dụng Gateway API cho Frontend testing
+# Frontend chỉ nên gọi qua Gateway API (Port 3000)
+#
+# 📁 Cấu trúc Test Files:
+# ├── tests/gateway-complete.http  - ⭐ MAIN: Complete Gateway API Tests
+# ├── tests/gateway-api.http       - Gateway API (Port 3000) 
+# ├── tests/auth-service.http      - Auth Service (Port 3001) - Direct testing
+# ├── tests/user-service.http      - User Service (Port 3002) - Direct testing
+# └── tests/server-service.http    - Server Service (Port 3003) - Direct testing
 
-# Register new user
+### ============= QUICK HEALTH CHECKS =============
+
+### Gateway API Health
+GET http://localhost:3000/health
+
+### Auth Service Health  
+GET http://localhost:3001/health
+
+### User Service Health
+GET http://localhost:3002/health
+
+### Server Service Health
+GET http://localhost:3003/health
+
+### ============= QUICK TEST SAMPLES =============
+
+### Quick Register Test
 POST http://localhost:3001/auth/register
 Content-Type: application/json
 
 {
-  "email": "nghiatv@gmail.com",
-  "username": "nsasd",
-  "password": "nasdsdadsa"
+  "email": "quicktest@example.com",
+  "username": "quicktest",
+  "password": "password123"
 }
 
-###
-
-# Login user
+### Quick Login Test
 POST http://localhost:3001/auth/login
 Content-Type: application/json
 
 {
-  "email": "nghiatv@gmail.com",
-  "password": "nghia123"
-}
-
-###
-
-# Forgot password
-POST http://localhost:3001/auth/forgot-password
-Content-Type: application/json
-
-{
-  "email": "nghiatv@gmail.com"
-}
-
-###
-
-# Refresh token (replace with actual refresh token)
-POST http://localhost:3001/auth/refresh-token
-Content-Type: application/json
-
-{
-  "refreshToken": "your-refresh-token-here"
-}
-
-###
-
-# Reset password (replace with actual token)
-POST http://localhost:3001/auth/reset-password
-Content-Type: application/json
-
-{
-  "token": "your-reset-token-here",
-  "newPassword": "newpassword123"
-}
-
-### Test User Service Endpoints
-
-# Get user profile (replace with actual user ID)
-GET http://localhost:3002/users/550e8400-e29b-41d4-a716-446655440000
-
-###
-
-# Update user profile (replace with actual user ID)
-PATCH http://localhost:3002/users/550e8400-e29b-41d4-a716-446655440000
-Content-Type: application/json
-
-{
-  "displayName": "Test User Display",
-  "bio": "This is my bio",
-  "customStatus": "Working on something cool"
-}
-
-###
-
-# Update user status (replace with actual user ID)
-PATCH http://localhost:3002/users/550e8400-e29b-41d4-a716-446655440000/status
-Content-Type: application/json
-
-{
-  "status": "online"
-}
-
-###
-
-# Search users
-GET http://localhost:3002/users/search/test
-
-### Test Gateway API (when implemented)
-
-# Register via Gateway
-POST http://localhost:3000/api/auth/register
-Content-Type: application/json
-
-{
-  "email": "gateway@example.com",
-  "username": "gatewayuser",
+  "email": "quicktest@example.com", 
   "password": "password123"
 }
 
-###
-
-# Login via Gateway
+### Quick Gateway Test
 POST http://localhost:3000/auth/login
 Content-Type: application/json
 
 {
-  "email": "gateway@example.com",
+  "email": "quicktest@example.com",
   "password": "password123"
 }
 
-###
+### ============= DETAILED TEST SUITES =============
 
-# Get user profile via Gateway
-GET http://localhost:3000/users/550e8400-e29b-41d4-a716-446655440000 
+# ⭐ GATEWAY COMPLETE TESTS (RECOMMENDED FOR FRONTEND)
+# File: tests/gateway-complete.http
+# Bao gồm: 84+ test cases covering ALL Gateway endpoints
+# Port: 3000 (API Gateway)
+# Features: Auth, Users, Servers, Channels, Messages, Files, Realtime
+# 🎯 Đây là file chính cho Frontend development!
+
+# 🌐 GATEWAY API TESTS (Basic)
+# File: tests/gateway-api.http
+# Bao gồm: Basic Gateway endpoints với authentication
+# Port: 3000
+# Routes: /auth/*, /users/*, /servers/*, /channels/*, etc.
+
+# 🔧 DIRECT SERVICE TESTS (For Backend debugging only)
+# 🔐 File: tests/auth-service.http - Auth Service (Port 3001)
+# 👤 File: tests/user-service.http - User Service (Port 3002) 
+# 🏠 File: tests/server-service.http - Server Service (Port 3003)
+
+### ============= TESTING WORKFLOW =============
+
+# 🎯 FRONTEND DEVELOPMENT:
+# Bước 1: Mở tests/gateway-complete.http
+# Bước 2: Register & Login để lấy accessToken
+# Bước 3: Test các features cần thiết
+# Bước 4: Integrate với Frontend code
+
+# 🔧 BACKEND DEBUGGING:
+# Bước 1: Test Health Checks (ở trên)
+# Bước 2: Chọn service cần debug
+# Bước 3: Mở file test tương ứng trong thư mục tests/
+# Bước 4: Chạy từng test case hoặc toàn bộ suite
+# Bước 5: Kiểm tra logs và responses
+
+### ============= SERVICE PORTS & URLS =============
+
+# Gateway API:    http://localhost:3000  (Routes to all services)
+# Auth Service:   http://localhost:3001  (Authentication & Authorization)
+# User Service:   http://localhost:3002  (Users, Friends, Social)
+# Server Service: http://localhost:3003  (Servers, Channels, Roles)
+
+### ============= TESTING NOTES =============
+
+# 📋 Checklist khi test:
+# ✅ Health checks pass
+# ✅ Authentication flow works
+# ✅ CRUD operations successful  
+# ✅ Error handling correct
+# ✅ Rate limiting functional
+# ✅ Permissions enforced
+# ✅ Data validation working
+
+# 🔧 Debug Tips:
+# - Check Docker containers are running
+# - Verify database connections
+# - Monitor service logs: docker-compose logs -f [service-name]
+# - Use Postman/Insomnia for complex workflows
+# - Check network connectivity between services
+
+# 📊 Performance Monitoring:
+# - Response times < 200ms for simple queries
+# - Rate limits respected
+# - Memory usage stable
+# - Database queries optimized
+
+### ============= ENVIRONMENT SETUP =============
+
+# Development Environment:
+# 1. Start services: docker-compose up -d
+# 2. Wait for health checks to pass (~30s)
+# 3. Run tests in order: Auth → User → Server → Gateway
+# 4. Monitor logs for any errors
+
+# Variables you might need to update:
+@testEmail = your-test-email@example.com
+@testPassword = your-test-password
+@testUserId = your-test-user-id
+
+### ============= COMMON ERROR SCENARIOS =============
+
+# 🚨 If tests fail, check:
+# - Are all services running? (docker ps)
+# - Are databases ready? (Check health endpoints)
+# - Are ports available? (3000-3003)
+# - Is there enough memory? (Docker Desktop)
+# - Are environment variables set correctly?
+
+# 🔄 Recovery steps:
+# 1. Restart services: docker-compose restart
+# 2. Check logs: docker-compose logs -f
+# 3. Rebuild if needed: docker-compose up -d --build
+# 4. Clear Redis cache if auth issues persist
+
+### END OF MAIN TEST FILE
+### Use specific test files in tests/ directory for detailed testing 

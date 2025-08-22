@@ -1,0 +1,183 @@
+### 🔐 Auth Service API Tests
+### Base URL: http://localhost:3001
+### Service Port: 3001
+
+### Variables for this session
+@baseUrl = http://localhost:3001
+@testEmail = test@example.com
+@testUsername = testuser
+@testPassword = password123
+
+### ============= HEALTH CHECK =============
+
+### Health Check - Direct Auth Service
+GET {{baseUrl}}/health
+
+### ============= USER REGISTRATION =============
+
+### Register New User
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "username": "{{testUsername}}",
+  "password": "{{testPassword}}"
+}
+
+### Register User with Different Email
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "username": "testuser2",
+  "password": "password123"
+}
+
+### Register User - Invalid Email (Should Fail)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "username": "invaliduser",
+  "password": "password123"
+}
+
+### Register User - Duplicate Email (Should Fail)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "username": "duplicateuser",
+  "password": "password123"
+}
+
+### ============= USER LOGIN =============
+
+### Login User - Valid Credentials
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+### Store token from login response (Chạy login trước, rồi copy token vào đây)
+# @accessToken = {{login.response.body.accessToken}}
+# @refreshToken = {{login.response.body.refreshToken}}
+
+# Paste actual tokens here after login:
+@accessToken = paste-your-actual-token-here
+@refreshToken = paste-your-actual-refresh-token-here
+
+### Login User - Invalid Password (Should Fail)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "wrongpassword"
+}
+
+### Login User - Non-existent Email (Should Fail)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "nonexistent@example.com",
+  "password": "{{testPassword}}"
+}
+
+### ============= TOKEN MANAGEMENT =============
+
+### Refresh Token - Valid Token
+POST {{baseUrl}}/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Refresh Token - Invalid Token (Should Fail)
+POST {{baseUrl}}/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "invalid-refresh-token-here"
+}
+
+### ============= PASSWORD RESET FLOW =============
+
+### Forgot Password - Valid Email
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}"
+}
+
+### Forgot Password - Non-existent Email (Should Still Return 200 for Security)
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "nonexistent@example.com"
+}
+
+### Reset Password - Valid Token (Replace with actual token from email)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "your-actual-reset-token-from-email",
+  "newPassword": "newpassword123"
+}
+
+### Reset Password - Invalid Token (Should Fail)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "invalid-reset-token",
+  "newPassword": "newpassword123"
+}
+
+### ============= LOGOUT (if implemented) =============
+
+### Logout User
+POST {{baseUrl}}/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ============= TESTING NOTES =============
+
+### Expected Responses:
+# Registration Success: 201 Created with user object
+# Login Success: 200 OK with accessToken and refreshToken
+# Invalid Credentials: 401 Unauthorized
+# Validation Errors: 400 Bad Request
+# Forgot Password: 200 OK (always for security)
+# Reset Password Success: 200 OK
+
+### Common Error Scenarios to Test:
+# 1. Missing required fields
+# 2. Invalid email format
+# 3. Password too short
+# 4. Duplicate email registration
+# 5. Invalid login credentials
+# 6. Expired or invalid tokens
+# 7. Malformed JSON requests
+
+### Security Considerations:
+# - Passwords should never be returned in responses
+# - Failed login attempts should not reveal if email exists
+# - Rate limiting should prevent brute force attacks
+# - Tokens should have appropriate expiration times
