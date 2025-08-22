@@ -9,6 +9,7 @@ Thư mục này chứa các diagram mô tả hệ thống event messages cho ứ
 - **`system-overview.mmd`** - Tổng quan hệ thống event-driven architecture
 - **`rabbitmq-routing.mmd`** - RabbitMQ routing patterns và queue bindings
 - **`event-schema-structure.mmd`** - Cấu trúc base event schema và domain schemas
+- **`redis-architecture-overview.mmd`** - Tổng quan Redis architecture và key types
 
 ### 📋 Business Flows
 
@@ -17,12 +18,14 @@ Thư mục này chứa các diagram mô tả hệ thống event messages cho ứ
 - **`server-creation-flow.mmd`** - Flow tạo server và channels
 - **`message-flow.mmd`** - Flow gửi tin nhắn và real-time communication
 - **`voice-channel-flow.mmd`** - Flow voice chat và media sharing
+- **`redis-rate-limiting-session-flow.mmd`** - Flow Redis rate limiting và session management
 
 ### ⚙️ Technical Aspects
 
 - **`event-versioning.mmd`** - Schema versioning strategy và compatibility
 - **`error-handling-flow.mmd`** - Error handling, retry logic và circuit breaker
 - **`monitoring-observability.mmd`** - Monitoring, metrics và alerting
+- **`redis-key-lifecycle.mmd`** - Redis key lifecycle và memory management
 
 ## 🎯 Mục đích sử dụng
 
@@ -88,9 +91,14 @@ npx @mermaid-js/mermaid-cli -i system-overview.mmd -o system-overview.png
 auth.user.registered
 auth.user.loginSucceeded
 auth.user.loginFailed
+auth.user.loggedOut
 auth.password.resetRequested
 auth.password.resetCompleted
 auth.token.refreshed
+auth.token.blacklisted
+auth.session.created
+auth.session.expired
+auth.session.revoked
 ```
 
 ### 👤 User Events
@@ -160,6 +168,19 @@ realtime.screen.shareEnded
 realtime.typing.started
 realtime.typing.stopped
 realtime.notification.created
+```
+
+### 🛡️ Rate Limiting & Security Events
+
+```
+rateLimit.threshold.exceeded
+rateLimit.window.reset
+rateLimit.user.blocked
+rateLimit.ip.blocked
+security.suspicious.activity
+security.brute.force.detected
+security.token.validation.failed
+security.session.hijack.attempt
 ```
 
 ## 🛠️ Development Guidelines

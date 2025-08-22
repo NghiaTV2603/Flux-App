@@ -1,0 +1,161 @@
+sequenceDiagram
+    participant U as User/Frontend
+    participant G as Gateway API
+    participant RL as RateLimitGuard  
+    participant AG as AuthGuard
+    participant R as Redis
+    participant AS as Auth Service
+    participant US as User Service
+    participant DB as PostgreSQL
+
+    Note over U,DB: 🔐 Step 1: User Registration Flow
+    
+    U->>G: POST /auth/register<br/>{email, username, password}
+    
+    G->>RL: 1. Check Rate Limit
+    RL->>R: INCR rate_limit:/auth/register:anonymous:IP:900000
+    R-->>RL: count = 1
+    Note over RL: Limit: 5 requests per 15 minutes
+    RL->>RL: Check: 1 <= 5 ✅
+    
+    G->>AS: 2. Forward register request
+    
+    AS->>DB: Create user in PostgreSQL
+    DB-->>AS: User created (id: user-123)
+    
+    AS->>AS: Generate JWT + refresh token
+    
+    AS->>DB: Store session in user_sessions table<br/>TTL: 7 days
+    
+    Note over AS,R: 🔥 CRITICAL: Store session in Redis
+    AS->>R: SET session:user-123 = sessionData<br/>TTL: 3600s (1 hour)
+    R-->>AS: OK
+    
+    AS-->>G: {user, accessToken, refreshToken}
+    G-->>U: Registration successful
+
+    Note over U,DB: 📋 Step 2: Get User Profile Flow (30s later)
+    
+    U->>G: GET /users/user-123<br/>Authorization: Bearer JWT_TOKEN
+    
+    G->>RL: 1. Check Rate Limit
+    Note over RL: Parse JWT to get userId (no verification)
+    RL->>R: INCR rate_limit:/users/:id:user-123:IP:60000
+    R-->>RL: count = 1
+    Note over RL: Limit: 100 requests per minute
+    RL->>RL: Check: 1 <= 100 ✅
+    
+    G->>AG: 2. Check Authentication
+    
+    AG->>R: EXISTS blacklist:JWT_TOKEN
+    R-->>AG: false (not blacklisted)
+    
+    AG->>AG: Verify JWT signature ✅
+    Note over AG: Extract payload: {sub: "user-123", ...}
+    
+    Note over AG,R: 🔥 CRITICAL: Check session in Redis
+    AG->>R: GET session:user-123
+    R-->>AG: sessionData (exists) ✅
+    
+    AG->>AG: Attach user to request
+    
+    G->>US: 3. GET /users/user-123<br/>with auth header
+    US-->>G: User profile data
+    G-->>U: Profile response
+
+    Note over U,DB: ⚠️ Step 3: Rate Limit Exceeded (101st request in 1 minute)
+    
+    U->>G: GET /users/user-123 (101st time)
+    
+    G->>RL: Check Rate Limit  
+    RL->>R: INCR rate_limit:/users/:id:user-123:IP:60000
+    R-->>RL: count = 101
+    Note over RL: Check: 101 > 100 ❌
+    RL-->>G: 429 Too Many Requests
+    G-->>U: Rate limit exceeded
+
+    Note over U,DB: ⏰ Step 4: Session Expired (1 hour later)
+    
+    U->>G: GET /users/user-123<br/>Authorization: Bearer JWT_TOKEN
+    
+    G->>RL: Check Rate Limit (new time window)
+    RL->>R: INCR rate_limit:/users/:id:user-123:IP:60000
+    R-->>RL: count = 1 (reset)
+    RL->>RL: Check: 1 <= 100 ✅
+    
+    G->>AG: Check Authentication
+    AG->>R: EXISTS blacklist:JWT_TOKEN
+    R-->>AG: false
+    AG->>AG: Verify JWT ✅
+    
+    Note over AG,R: ❌ Session expired in Redis
+    AG->>R: GET session:user-123
+    R-->>AG: null (TTL expired)
+    AG-->>G: 401 Session expired
+    G-->>U: Authentication failed
+
+    Note over U,DB: 🔄 Step 5: Token Refresh Flow
+    
+    U->>G: POST /auth/refresh-token<br/>{refreshToken}
+    
+    G->>RL: Check Rate Limit
+    RL->>R: INCR rate_limit:/auth/refresh:user-123:IP:3600000
+    R-->>RL: count = 1
+    Note over RL: Limit: 20 requests per hour
+    RL->>RL: Check: 1 <= 20 ✅
+    
+    G->>AS: Forward refresh request
+    
+    AS->>DB: Verify refresh token in user_sessions
+    DB-->>AS: Valid session found
+    
+    AS->>DB: Update lastUsedAt timestamp
+    
+    AS->>AS: Generate new JWT access token
+    
+    Note over AS,R: 🔄 Refresh Redis session
+    AS->>R: SET session:user-123 = updatedSessionData<br/>TTL: 3600s (new 1 hour)
+    R-->>AS: OK
+    
+    AS-->>G: {accessToken, refreshToken}
+    G-->>U: New tokens
+
+    Note over U,DB: 🚪 Step 6: User Logout Flow
+    
+    U->>G: POST /auth/logout<br/>{refreshToken}
+    
+    G->>RL: Check Rate Limit
+    RL->>R: INCR rate_limit:/auth/logout:user-123:IP:900000
+    R-->>RL: count = 1
+    
+    G->>AS: Forward logout request
+    
+    AS->>DB: Delete session from user_sessions table
+    
+    Note over AS,R: 🔥 Remove from Redis
+    AS->>R: DEL session:user-123
+    R-->>AS: OK
+    
+    Note over AS,R: 🚫 Blacklist current JWT
+    AS->>R: SET blacklist:JWT_TOKEN = "1"<br/>TTL: remaining JWT time
+    R-->>AS: OK
+    
+    AS-->>G: Logout successful
+    G-->>U: Logged out
+
+    Note over U,DB: ❌ Step 7: Using Blacklisted Token
+    
+    U->>G: GET /users/user-123<br/>Authorization: Bearer JWT_TOKEN (blacklisted)
+    
+    G->>RL: Check Rate Limit
+    RL->>R: INCR rate_limit:/users/:id:user-123:IP:60000
+    R-->>RL: count = 1
+    RL->>RL: Check: 1 <= 100 ✅
+    
+    G->>AG: Check Authentication
+    
+    Note over AG,R: 🚫 Token is blacklisted
+    AG->>R: EXISTS blacklist:JWT_TOKEN
+    R-->>AG: true (blacklisted)
+    AG-->>G: 401 Token is disabled
+    G-->>U: Authentication failed

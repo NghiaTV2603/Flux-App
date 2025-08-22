@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { RedisService } from '../redis/redis.service';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, RabbitMQService],
+  providers: [AuthService, PrismaService, RabbitMQService, RedisService],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -8,7 +8,6 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { ConfigService } from '../config/config.service';
 import { RedisService } from '../redis/redis.service';
-import { log } from 'console';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -21,8 +20,6 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
-
-    console.log('------ check data token', token);
 
     if (!token) {
       throw new UnauthorizedException('Token is not provided');
@@ -45,7 +42,6 @@ export class AuthGuard implements CanActivate {
       // Check if user session is in Redis
       const userSession = await this.redisService.get(`session:${payload.sub}`);
 
-      console.log('------ check data userSession', userSession);
       if (!userSession) {
         throw new UnauthorizedException('Session expired');
       }

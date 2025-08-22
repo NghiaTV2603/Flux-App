@@ -1,0 +1,75 @@
+graph LR
+    subgraph "🚦 Rate Limit Key Lifecycle"
+        RL1[Request arrives] --> RL2{Key exists?}
+        RL2 -->|No| RL3[Create key = 1<br/>Set TTL = windowMs]
+        RL2 -->|Yes| RL4[Increment counter]
+        RL3 --> RL5{Counter > limit?}
+        RL4 --> RL5
+        RL5 -->|No| RL6[✅ Allow request]
+        RL5 -->|Yes| RL7[❌ Block request<br/>429 Too Many Requests]
+        RL6 --> RL8[Key auto-expires<br/>after TTL]
+        RL7 --> RL8
+        RL8 --> RL9[🔄 Cycle repeats]
+    end
+    
+    subgraph "👤 Session Key Lifecycle"
+        S1[User login/register] --> S2[Generate JWT + session]
+        S2 --> S3[Store session in Redis<br/>TTL = 1 hour]
+        S3 --> S4[User makes API calls]
+        S4 --> S5{Session valid?}
+        S5 -->|Yes| S6[✅ Process request]
+        S5 -->|No| S7[❌ 401 Session expired]
+        S6 --> S8{Refresh token?}
+        S7 --> S11[User must re-login]
+        S8 -->|Yes| S9[Extend session TTL<br/>Generate new JWT]
+        S8 -->|No| S10[Session expires naturally]
+        S9 --> S4
+        S10 --> S11
+        S11 --> S1
+    end
+    
+    subgraph "🚫 Blacklist Key Lifecycle"
+        B1[User logout] --> B2[Add JWT to blacklist]
+        B2 --> B3[Set TTL = remaining JWT time]
+        B3 --> B4[Future requests check blacklist]
+        B4 --> B5{Token blacklisted?}
+        B5 -->|Yes| B6[❌ 401 Token disabled]
+        B5 -->|No| B7[Continue auth flow]
+        B6 --> B8[Key expires when JWT would expire]
+        B7 --> B9[Normal request processing]
+        B8 --> B10[🗑️ Auto-cleanup]
+        B9 --> B4
+    end
+    
+    subgraph "📊 Memory Management"
+        M1[Redis Memory] --> M2{TTL expired?}
+        M2 -->|Yes| M3[Auto-delete key]
+        M2 -->|No| M4[Keep key in memory]
+        M3 --> M5[Free memory]
+        M4 --> M6[Background TTL check]
+        M5 --> M7[Available for new keys]
+        M6 --> M2
+        M7 --> M1
+    end
+    
+    %% Cross-connections
+    RL8 -.->|"Memory freed"| M3
+    S10 -.->|"Memory freed"| M3
+    B8 -.->|"Memory freed"| M3
+    
+    %% Styling
+    classDef rateLimit fill:#ffebee
+    classDef session fill:#e8f5e8
+    classDef blacklist fill:#fff3e0
+    classDef memory fill:#f3e5f5
+    classDef success fill:#c8e6c9
+    classDef error fill:#ffcdd2
+    classDef process fill:#e1f5fe
+    
+    class RL1,RL2,RL3,RL4,RL5,RL8,RL9 rateLimit
+    class S1,S2,S3,S4,S5,S8,S9,S10,S11 session
+    class B1,B2,B3,B4,B5,B8,B10 blacklist
+    class M1,M2,M3,M4,M5,M6,M7 memory
+    class RL6,S6,B7,B9 success
+    class RL7,S7,B6 error
+    class RL3,RL4,S2,S9,B2,M3 process

@@ -1,0 +1,93 @@
+graph TD
+    subgraph "🏗️ Flux App Architecture"
+        F[Frontend/Mobile App]
+        
+        subgraph "🌐 Gateway API Layer"
+            G[Gateway API]
+            RL[RateLimitGuard]
+            AG[AuthGuard]
+        end
+        
+        subgraph "🔧 Microservices"
+            AS[Auth Service]
+            US[User Service]
+            SS[Server Service]
+            MS[Message Service]
+            RS[Realtime Service]
+        end
+        
+        subgraph "💾 Data Layer"
+            R[(Redis)]
+            PG[(PostgreSQL)]
+            RMQ[RabbitMQ]
+        end
+    end
+    
+    %% Frontend connections
+    F -->|HTTP Requests| G
+    
+    %% Gateway guards
+    G --> RL
+    G --> AG
+    RL --> R
+    AG --> R
+    
+    %% Service connections
+    G --> AS
+    G --> US
+    G --> SS
+    G --> MS
+    G --> RS
+    
+    %% Auth service connections
+    AS --> R
+    AS --> PG
+    AS --> RMQ
+    
+    %% Other services
+    US --> PG
+    SS --> PG
+    MS --> PG
+    RS --> PG
+    
+    %% Redis Key Types
+    subgraph "🔑 Redis Key Types"
+        RK1["🚦 Rate Limit Keys<br/>rate_limit:endpoint:user:ip:window"]
+        RK2["👤 Session Keys<br/>session:userId"]
+        RK3["🚫 Blacklist Keys<br/>blacklist:token"]
+        RK4["📊 Metrics Keys<br/>metrics:*"]
+    end
+    
+    R --> RK1
+    R --> RK2
+    R --> RK3
+    R --> RK4
+    
+    %% Key characteristics
+    RK1 -.->|"TTL: windowMs<br/>Auto-expire"| RK1
+    RK2 -.->|"TTL: 1 hour<br/>JWT expiry sync"| RK2
+    RK3 -.->|"TTL: remaining JWT time<br/>Prevent reuse"| RK3
+    RK4 -.->|"TTL: varies<br/>Analytics data"| RK4
+    
+    %% Flow indicators
+    F -.->|"1. Request + JWT"| G
+    G -.->|"2. Rate limit check"| RL
+    G -.->|"3. Auth validation"| AG
+    G -.->|"4. Forward to service"| AS
+    AS -.->|"5. Store session"| R
+    AS -.->|"6. Store user data"| PG
+    
+    %% Styling
+    classDef frontend fill:#e1f5fe
+    classDef gateway fill:#f3e5f5
+    classDef service fill:#e8f5e8
+    classDef database fill:#fff3e0
+    classDef redis fill:#ffebee
+    classDef keys fill:#f1f8e9
+    
+    class F frontend
+    class G,RL,AG gateway
+    class AS,US,SS,MS,RS service
+    class PG database
+    class R redis
+    class RK1,RK2,RK3,RK4 keys

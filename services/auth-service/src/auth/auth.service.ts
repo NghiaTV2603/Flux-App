@@ -8,6 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { RedisService } from '../redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcryptjs';
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly rabbitMQService: RabbitMQService,
+    private readonly redisService: RedisService,
   ) {}
 
   async register(registerDto: RegisterDto, deviceInfo?: any) {
@@ -197,6 +199,22 @@ export class AuthService {
       },
     });
 
+    // Update Redis session with new expiry
+    const sessionData = {
+      userId: sessionRecord.userId,
+      deviceInfo: deviceInfo || sessionRecord.deviceInfo,
+      createdAt: sessionRecord.createdAt.toISOString(),
+      lastUsedAt: new Date().toISOString(),
+      expiresAt: sessionRecord.expiresAt.toISOString(),
+    };
+
+    // Refresh Redis session with new TTL (1 hour)
+    await this.redisService.setUserSession(
+      sessionRecord.userId,
+      sessionData,
+      3600,
+    );
+
     // Generate new access token
     const accessToken = await this.generateAccessToken(sessionRecord.userId);
 
@@ -214,7 +232,7 @@ export class AuthService {
       .update(refreshToken)
       .digest('hex');
 
-    // Store user session
+    // Store user session in database
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await this.prisma.userSession.create({
       data: {
@@ -224,6 +242,17 @@ export class AuthService {
         expiresAt,
       },
     });
+
+    // CRITICAL: Also store session in Redis for AuthGuard validation
+    const sessionData = {
+      userId,
+      deviceInfo: deviceInfo || null,
+      createdAt: new Date().toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
+
+    // Store with same TTL as JWT access token (1 hour = 3600 seconds)
+    await this.redisService.setUserSession(userId, sessionData, 3600);
 
     return {
       accessToken,
@@ -251,9 +280,13 @@ export class AuthService {
     });
 
     if (session) {
+      // Remove from database
       await this.prisma.userSession.delete({
         where: { id: session.id },
       });
+
+      // Remove from Redis
+      await this.redisService.deleteUserSession(session.userId);
     }
 
     return { message: 'Logged out successfully' };
@@ -263,6 +296,9 @@ export class AuthService {
     await this.prisma.userSession.deleteMany({
       where: { userId },
     });
+
+    // Remove from Redis
+    await this.redisService.deleteUserSession(userId);
 
     return { message: 'Logged out from all devices successfully' };
   }
