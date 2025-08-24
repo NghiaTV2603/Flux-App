@@ -1,0 +1,84 @@
+### Message Service API Tests
+
+### Health Check
+GET http://localhost:3005/health
+
+### Get Service Info
+GET http://localhost:3005
+
+### Variables
+@baseUrl = http://localhost:3005/api/v1
+@channelId = 123e4567-e89b-12d3-a456-426614174000
+@conversationId = 123e4567-e89b-12d3-a456-426614174001
+@messageId = msg_123e4567-e89b-12d3-a456-426614174002
+@userId = user_123e4567-e89b-12d3-a456-426614174003
+
+### Create Channel Message
+POST {{baseUrl}}/channels/{{channelId}}/messages
+Content-Type: application/json
+Authorization: Bearer your-jwt-token
+
+{
+  "content": "Hello from message service! 👋",
+  "mentions": [
+    {
+      "type": "user",
+      "id": "{{userId}}",
+      "username": "testuser"
+    }
+  ],
+  "attachments": []
+}
+
+### Get Channel Messages
+GET {{baseUrl}}/channels/{{channelId}}/messages?limit=20
+Authorization: Bearer your-jwt-token
+
+### Create Direct Message
+POST {{baseUrl}}/conversations/{{conversationId}}/messages
+Content-Type: application/json
+Authorization: Bearer your-jwt-token
+
+{
+  "content": "Private message test",
+  "participants": ["{{userId}}", "user_456"]
+}
+
+### Get Direct Messages
+GET {{baseUrl}}/conversations/{{conversationId}}/messages?limit=20
+Authorization: Bearer your-jwt-token
+
+### Edit Message
+PUT {{baseUrl}}/messages/{{messageId}}
+Content-Type: application/json
+Authorization: Bearer your-jwt-token
+
+{
+  "content": "Edited message content",
+  "reason": "Fixed typo"
+}
+
+### Add Reaction
+POST {{baseUrl}}/messages/{{messageId}}/reactions
+Content-Type: application/json
+Authorization: Bearer your-jwt-token
+
+{
+  "emoji": "👍"
+}
+
+### Remove Reaction
+DELETE {{baseUrl}}/messages/{{messageId}}/reactions/👍
+Authorization: Bearer your-jwt-token
+
+### Pin Message
+POST {{baseUrl}}/messages/{{messageId}}/pin
+Authorization: Bearer your-jwt-token
+
+### Search Messages in Channel
+GET {{baseUrl}}/channels/{{channelId}}/search?search=hello&limit=10
+Authorization: Bearer your-jwt-token
+
+### Delete Message
+DELETE {{baseUrl}}/messages/{{messageId}}
+Authorization: Bearer your-jwt-token
