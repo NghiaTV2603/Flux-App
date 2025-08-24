@@ -177,6 +177,74 @@ services:
       retries: 3
       start_period: 60s
 
+  # Message Service
+  message-service:
+    build:
+      context: ./services/message-service
+      dockerfile: Dockerfile
+    container_name: flux-message-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_message_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
+      - PORT=3005
+      - USER_SERVICE_URL=http://user-service:3002
+      - SERVER_SERVICE_URL=http://server-service:3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - flux-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Realtime Service
+  realtime-service:
+    build:
+      context: ./services/realtime-service
+      dockerfile: Dockerfile
+    container_name: flux-realtime-service
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_realtime_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
+      - PORT=3006
+      - MESSAGE_SERVICE_URL=http://message-service:3005
+      - USER_SERVICE_URL=http://user-service:3002
+      - SERVER_SERVICE_URL=http://server-service:3003
+      - WEBSOCKET_CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - flux-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   # Gateway API
   gateway-api:
     build:
@@ -190,6 +258,7 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:3001
       - USER_SERVICE_URL=http://user-service:3002
       - SERVER_SERVICE_URL=http://server-service:3003
+      - MESSAGE_SERVICE_URL=http://message-service:3005
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-super-secret-jwt-key-change-in-production
       - PORT=3000
@@ -199,6 +268,8 @@ services:
       user-service:
         condition: service_healthy
       server-service:
+        condition: service_healthy
+      message-service:
         condition: service_healthy
       redis:
         condition: service_healthy

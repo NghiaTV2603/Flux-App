@@ -1,0 +1,247 @@
+### Variables
+@baseUrl = http://localhost:3005
+@testUserId = 550e8400-e29b-41d4-a716-446655440000
+@testChannelId = 550e8400-e29b-41d4-a716-446655440001
+@testServerId = 550e8400-e29b-41d4-a716-446655440002
+@testRecipientId = 550e8400-e29b-41d4-a716-446655440003
+@testMessageId = 
+
+### Health Check
+GET {{baseUrl}}/health
+
+### ============= CHANNEL MESSAGES =============
+
+### Create Channel Message
+POST {{baseUrl}}/channels/{{testChannelId}}/messages?serverId={{testServerId}}&userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "content": "Hello world! This is my first message in this channel.",
+  "type": "text"
+}
+
+### Create Channel Message with Mentions
+POST {{baseUrl}}/channels/{{testChannelId}}/messages?serverId={{testServerId}}&userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "content": "Hey @everyone! Check this out @{{testRecipientId}}",
+  "type": "text",
+  "mentions": ["{{testRecipientId}}"],
+  "mentionEveryone": true
+}
+
+### Create Channel Message with Attachments
+POST {{baseUrl}}/channels/{{testChannelId}}/messages?serverId={{testServerId}}&userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "content": "Check out this image!",
+  "type": "image",
+  "attachments": [
+    {
+      "filename": "screenshot.png",
+      "url": "https://example.com/files/screenshot.png",
+      "contentType": "image/png",
+      "size": "1024000",
+      "width": "1920",
+      "height": "1080"
+    }
+  ]
+}
+
+### Create Channel Message Reply
+POST {{baseUrl}}/channels/{{testChannelId}}/messages?serverId={{testServerId}}&userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "content": "This is a reply to the previous message",
+  "type": "text",
+  "replyToId": "{{testMessageId}}"
+}
+
+### Get Channel Messages (Latest 50)
+GET {{baseUrl}}/channels/{{testChannelId}}/messages
+
+### Get Channel Messages with Limit
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?limit=10
+
+### Get Channel Messages Before Specific Message
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?before={{testMessageId}}&limit=10
+
+### Get Channel Messages After Specific Message
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?after={{testMessageId}}&limit=10
+
+### Get Channel Messages Around Specific Message
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?around={{testMessageId}}&limit=20
+
+### Search Channel Messages
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?search=hello&limit=10
+
+### Get Messages by Author
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?authorId={{testUserId}}&limit=10
+
+### Get Only Pinned Messages
+GET {{baseUrl}}/channels/{{testChannelId}}/messages?pinned=true
+
+### Get Single Channel Message
+GET {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}
+
+### Update Channel Message
+PATCH {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "content": "This message has been edited!"
+}
+
+### Delete Channel Message
+DELETE {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}?userId={{testUserId}}
+
+### ============= MESSAGE REACTIONS =============
+
+### Add Reaction to Channel Message
+POST {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/reactions?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "emoji": "👍"
+}
+
+### Add Custom Emoji Reaction
+POST {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/reactions?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "emoji": ":custom_emoji_123:"
+}
+
+### Remove Reaction from Channel Message
+DELETE {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/reactions/👍?userId={{testUserId}}
+
+### Get Message Reactions
+GET {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/reactions
+
+### ============= DIRECT MESSAGES =============
+
+### Send Direct Message
+POST {{baseUrl}}/dm/send?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "recipientId": "{{testRecipientId}}",
+  "content": "Hey! How are you doing?",
+  "type": "text"
+}
+
+### Send Direct Message with Attachment
+POST {{baseUrl}}/dm/send?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "recipientId": "{{testRecipientId}}",
+  "content": "Check out this file!",
+  "type": "file",
+  "attachments": [
+    {
+      "filename": "document.pdf",
+      "url": "https://example.com/files/document.pdf",
+      "contentType": "application/pdf",
+      "size": "2048000"
+    }
+  ]
+}
+
+### Send Direct Message Reply
+POST {{baseUrl}}/dm/send?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "recipientId": "{{testRecipientId}}",
+  "content": "This is a reply to your message",
+  "type": "text",
+  "replyToId": "{{testMessageId}}"
+}
+
+### Get Direct Messages Conversation
+GET {{baseUrl}}/dm/conversation/{{testRecipientId}}?userId={{testUserId}}
+
+### Get Direct Messages with Limit
+GET {{baseUrl}}/dm/conversation/{{testRecipientId}}?userId={{testUserId}}&limit=10
+
+### Search Direct Messages
+GET {{baseUrl}}/dm/conversation/{{testRecipientId}}?userId={{testUserId}}&search=hello
+
+### Get DM Conversations List
+GET {{baseUrl}}/dm/conversations?userId={{testUserId}}
+
+### Update Direct Message
+PATCH {{baseUrl}}/dm/messages/{{testMessageId}}?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "content": "This DM has been edited!"
+}
+
+### Delete Direct Message
+DELETE {{baseUrl}}/dm/messages/{{testMessageId}}?userId={{testUserId}}
+
+### ============= MESSAGE SEARCH =============
+
+### Search Messages Globally
+GET {{baseUrl}}/messages/search?q=hello&limit=20
+
+### Search Messages in Channel
+GET {{baseUrl}}/messages/search?q=hello&channelId={{testChannelId}}&limit=20
+
+### Search Messages in Server
+GET {{baseUrl}}/messages/search?q=hello&serverId={{testServerId}}&limit=20
+
+### Search Messages by Author
+GET {{baseUrl}}/messages/search?q=hello&authorId={{testUserId}}&limit=20
+
+### ============= MESSAGE THREADS =============
+
+### Create Message Thread
+POST {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/threads
+Content-Type: application/json
+
+{
+  "name": "Discussion about this message"
+}
+
+### Get Message Thread
+GET {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/threads
+
+### ============= MESSAGE PINS =============
+
+### Pin Message
+POST {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/pin?userId={{testUserId}}
+
+### Unpin Message
+DELETE {{baseUrl}}/channels/{{testChannelId}}/messages/{{testMessageId}}/pin?userId={{testUserId}}
+
+### Get Pinned Messages
+GET {{baseUrl}}/channels/{{testChannelId}}/pins
+
+### ============= BULK OPERATIONS =============
+
+### Bulk Delete Messages (Admin only)
+DELETE {{baseUrl}}/channels/{{testChannelId}}/messages/bulk?userId={{testUserId}}
+Content-Type: application/json
+
+{
+  "messageIds": ["{{testMessageId}}", "another-message-id"],
+  "reason": "Spam cleanup"
+}
+
+### ============= MESSAGE STATISTICS =============
+
+### Get Channel Message Stats
+GET {{baseUrl}}/channels/{{testChannelId}}/stats
+
+### Get User Message Stats
+GET {{baseUrl}}/users/{{testUserId}}/message-stats
+
+### Get Server Message Stats
+GET {{baseUrl}}/servers/{{testServerId}}/message-stats
