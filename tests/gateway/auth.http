@@ -1,0 +1,195 @@
+### 🔐 Authentication Service - Gateway API Tests
+### Routes through API Gateway to Auth Service (Port 3001)
+
+### Import shared variables
+
+@baseUrl = http://localhost:3000/api
+@testEmail = demarco1@gmail.com
+@testUsername = demarco1
+@testPassword = demarco1
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzM3ZDkwMi02NDI4LTQ4MDItYWQyNS1jNjE5NjRhOTQzYWUiLCJpYXQiOjE3NTU5Njk5ODYsImV4cCI6MTc1NTk3MzU4Nn0.422VOWYAPHmbiZx7Fr_UdMTsJHBzOjbLrhA3IKq5Ca4
+@refreshToken = f2297d080f5a3091e09643c7e7f26636aedacf8680ed029f6072c407f4c2145670f7f6f253a68b1868973c7a0274d6c6d48e4d3de1205395393f67f475145c28
+@testUserId = a337d902-6428-4802-ad25-c61964a943ae
+@serverId = paste-server-id-here
+@channelId = paste-channel-id-here
+@roleId = paste-role-id-here
+@messageId = paste-message-id-here
+@fileId = paste-file-id-here
+@friendshipId = paste-friendship-id-here
+@notificationId = paste-notification-id-here
+@testUser2Id = paste-test-user-2-id-here
+@testUser3Id = paste-test-user-3-id-here
+@testImageUrl = https://example.com/test-image.jpg
+@testAvatarUrl = https://example.com/test-avatar.jpg
+
+### ============= HEALTH CHECK =============
+
+### Gateway Health Check
+GET {{baseUrl}}/health
+
+### ============= USER REGISTRATION & LOGIN =============
+
+### 1. Register New User
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "username": "{{testUsername}}",
+  "password": "{{testPassword}}"
+}
+
+### 2. Login User (Copy accessToken từ response)
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+### 3. Login with Username
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{testUsername}}",
+  "password": "{{testPassword}}"
+}
+
+### ============= OAUTH AUTHENTICATION =============
+
+### 4. OAuth Login - Google
+POST {{baseUrl}}/auth/oauth
+Content-Type: application/json
+
+{
+  "provider": "google",
+  "code": "oauth-authorization-code-from-google",
+  "redirectUri": "http://localhost:3000/auth/callback"
+}
+
+### 5. OAuth Login - Facebook
+POST {{baseUrl}}/auth/oauth
+Content-Type: application/json
+
+{
+  "provider": "facebook",
+  "code": "oauth-authorization-code-from-facebook",
+  "redirectUri": "http://localhost:3000/auth/callback"
+}
+
+### 6. OAuth Login - GitHub
+POST {{baseUrl}}/auth/oauth
+Content-Type: application/json
+
+{
+  "provider": "github",
+  "code": "oauth-authorization-code-from-github",
+  "redirectUri": "http://localhost:3000/auth/callback"
+}
+
+### ============= PASSWORD MANAGEMENT =============
+
+### 7. Forgot Password
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}"
+}
+
+### 8. Reset Password (cần token từ email)
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "reset-token-from-email",
+  "newPassword": "newpassword123"
+}
+
+### ============= TOKEN MANAGEMENT =============
+
+### 9. Refresh Access Token
+POST {{baseUrl}}/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 10. Validate Token (Auth Required)
+GET {{baseUrl}}/auth/validate
+Authorization: Bearer {{accessToken}}
+
+### 11. Logout (Auth Required)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### ============= EMAIL VERIFICATION =============
+
+### 12. Resend Verification Email
+POST {{baseUrl}}/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}"
+}
+
+### 13. Verify Email
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "token": "verification-token-from-email"
+}
+
+### ============= ERROR TESTING =============
+
+### 14. Test Invalid Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@email.com",
+  "password": "wrongpassword"
+}
+
+### 15. Test Invalid Token
+GET {{baseUrl}}/auth/validate
+Authorization: Bearer invalid-token-here
+
+### 16. Test Rate Limiting (Send multiple times quickly)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "wrongpassword"
+}
+
+### ============= TESTING NOTES =============
+
+### 📝 Usage Instructions:
+# 1. Run: Register New User (test #1)
+# 2. Run: Login User (test #2) - Copy accessToken from response
+# 3. Update @accessToken variable in _shared-vars.http
+# 4. Test other authenticated endpoints
+
+### 🔒 Rate Limits:
+# - Register: 3 requests/15min
+# - Login: 5 requests/15min  
+# - Password Reset: 3 requests/15min
+# - Token Refresh: 10 requests/15min
+
+### 🎯 Success Criteria:
+# - Registration returns user data
+# - Login returns accessToken & refreshToken
+# - Token validation works with valid token
+# - Rate limiting blocks excessive requests

@@ -1,0 +1,329 @@
+### 📁 File & Media Service - Gateway API Tests
+### Routes through API Gateway to File Service (Port 3008)
+
+### Import shared variables
+< _shared-vars.http
+
+### ============= FILE UPLOAD =============
+
+### 1. Upload Single File
+# @name uploadFile
+POST {{baseUrl}}/files/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data (add in REST client):
+# file: [select file to upload]
+# channelId: {{channelId}}
+# description: File uploaded via Gateway API for testing
+# isPublic: true
+
+### 2. Upload Multiple Files
+POST {{baseUrl}}/files/upload-multiple
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data (add in REST client):
+# files: [select multiple files]
+# channelId: {{channelId}}
+# description: Multiple files uploaded via Gateway API
+
+### 3. Upload File with Metadata
+POST {{baseUrl}}/files/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data:
+# file: [select file]
+# channelId: {{channelId}}
+# description: File with custom metadata
+# tags: ["gateway", "test", "api"]
+# isPublic: false
+# expiresAt: 2025-12-31T23:59:59Z
+
+### ============= FILE MANAGEMENT =============
+
+### 4. Get File Details
+GET {{baseUrl}}/files/{{fileId}}
+Authorization: Bearer {{accessToken}}
+
+### 5. Update File Metadata
+PATCH {{baseUrl}}/files/{{fileId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Updated file description via Gateway API",
+  "tags": ["gateway", "updated", "test"],
+  "isPublic": true
+}
+
+### 6. Get User Files
+GET {{baseUrl}}/files/user/{{testUserId}}?limit=20&type=image&sortBy=createdAt&sortOrder=desc
+Authorization: Bearer {{accessToken}}
+
+### 7. Get Channel Files
+GET {{baseUrl}}/files/channel/{{channelId}}?limit=10&fileType=document
+Authorization: Bearer {{accessToken}}
+
+### 8. Get Server Files
+GET {{baseUrl}}/files/server/{{serverId}}?limit=15&isPublic=true
+Authorization: Bearer {{accessToken}}
+
+### 9. Delete File
+DELETE {{baseUrl}}/files/{{fileId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= AVATAR MANAGEMENT =============
+
+### 10. Upload User Avatar
+# @name uploadAvatar
+POST {{baseUrl}}/avatars/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data:
+# avatar: [select image file - JPG/PNG/GIF, max 8MB]
+
+### 11. Get User Avatar
+GET {{baseUrl}}/avatars/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 12. Get Avatar Variants
+GET {{baseUrl}}/avatars/{{testUserId}}?size=128x128
+Authorization: Bearer {{accessToken}}
+
+### 13. Delete User Avatar
+DELETE {{baseUrl}}/avatars/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= SERVER ICONS =============
+
+### 14. Upload Server Icon
+POST {{baseUrl}}/servers/{{serverId}}/icon
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data:
+# icon: [select image file - JPG/PNG, max 10MB]
+
+### 15. Get Server Icon
+GET {{baseUrl}}/servers/{{serverId}}/icon
+Authorization: Bearer {{accessToken}}
+
+### 16. Delete Server Icon
+DELETE {{baseUrl}}/servers/{{serverId}}/icon
+Authorization: Bearer {{accessToken}}
+
+### ============= FILE SHARING =============
+
+### 17. Create Shareable Link
+# @name createShareLink
+POST {{baseUrl}}/files/{{fileId}}/share
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "expiresIn": 24,
+  "allowDownload": true,
+  "requireAuth": false,
+  "maxDownloads": 10
+}
+
+### 18. Get Shared File Info
+GET {{baseUrl}}/files/shared/shared-token-here
+
+### 19. Download Shared File
+GET {{baseUrl}}/files/shared/shared-token-here/download
+
+### 20. Revoke Share Link
+DELETE {{baseUrl}}/files/{{fileId}}/share/shared-token-here
+Authorization: Bearer {{accessToken}}
+
+### ============= FILE PROCESSING =============
+
+### 21. Get File Thumbnail
+GET {{baseUrl}}/files/{{fileId}}/thumbnail?size=200x200&format=webp
+Authorization: Bearer {{accessToken}}
+
+### 22. Get Image Variants
+GET {{baseUrl}}/files/{{fileId}}/variants?sizes=64x64,128x128,256x256
+Authorization: Bearer {{accessToken}}
+
+### 23. Get Video Preview
+GET {{baseUrl}}/files/{{fileId}}/preview?timestamp=30
+Authorization: Bearer {{accessToken}}
+
+### 24. Get File Download URL
+GET {{baseUrl}}/files/{{fileId}}/download-url
+Authorization: Bearer {{accessToken}}
+
+### 25. Direct File Download
+GET {{baseUrl}}/files/{{fileId}}/download
+Authorization: Bearer {{accessToken}}
+
+### ============= FILE SEARCH =============
+
+### 26. Search Files by Name
+GET {{baseUrl}}/files/search?q=gateway&limit=20
+Authorization: Bearer {{accessToken}}
+
+### 27. Search Files by Type
+GET {{baseUrl}}/files/search?type=image&limit=15&sortBy=size&sortOrder=desc
+Authorization: Bearer {{accessToken}}
+
+### 28. Search Files by User
+GET {{baseUrl}}/files/search?uploaderId={{testUserId}}&limit=10
+Authorization: Bearer {{accessToken}}
+
+### 29. Search Files by Date Range
+GET {{baseUrl}}/files/search?after=2025-08-01&before=2025-08-31&limit=25
+Authorization: Bearer {{accessToken}}
+
+### 30. Advanced File Search
+GET {{baseUrl}}/files/search?q=test&type=document&minSize=1024&maxSize=10485760&tags=gateway&limit=20
+Authorization: Bearer {{accessToken}}
+
+### ============= FILE ANALYTICS =============
+
+### 31. Get File Statistics
+GET {{baseUrl}}/files/{{fileId}}/stats
+Authorization: Bearer {{accessToken}}
+
+### 32. Get User Storage Usage
+GET {{baseUrl}}/files/user/{{testUserId}}/usage
+Authorization: Bearer {{accessToken}}
+
+### 33. Get Server Storage Usage
+GET {{baseUrl}}/files/server/{{serverId}}/usage
+Authorization: Bearer {{accessToken}}
+
+### 34. Get Popular Files
+GET {{baseUrl}}/files/popular?period=week&limit=10
+Authorization: Bearer {{accessToken}}
+
+### ============= FILE MODERATION =============
+
+### 35. Report File
+POST {{baseUrl}}/files/{{fileId}}/report
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "inappropriate_content",
+  "description": "Testing file reporting via Gateway API"
+}
+
+### 36. Get Reported Files (Moderator)
+GET {{baseUrl}}/files/reports?status=pending&limit=20
+Authorization: Bearer {{accessToken}}
+
+### 37. Moderate File (Moderator)
+PATCH {{baseUrl}}/files/{{fileId}}/moderate
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "action": "approve",
+  "reason": "File is appropriate"
+}
+
+### ============= CDN & OPTIMIZATION =============
+
+### 38. Get CDN URL
+GET {{baseUrl}}/files/{{fileId}}/cdn-url
+Authorization: Bearer {{accessToken}}
+
+### 39. Optimize Image
+POST {{baseUrl}}/files/{{fileId}}/optimize
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "quality": 85,
+  "format": "webp",
+  "maxWidth": 1920,
+  "maxHeight": 1080
+}
+
+### 40. Generate WebP Variant
+POST {{baseUrl}}/files/{{fileId}}/variants/webp
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "quality": 80,
+  "sizes": ["256x256", "512x512", "1024x1024"]
+}
+
+### ============= ERROR TESTING =============
+
+### 41. Test Upload File Too Large
+POST {{baseUrl}}/files/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data with file > 100MB (should fail)
+
+### 42. Test Invalid File Type
+POST {{baseUrl}}/files/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Form data with .exe file (should fail)
+
+### 43. Test Rate Limiting - Multiple Uploads
+POST {{baseUrl}}/files/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data
+
+# Send multiple times quickly
+
+### 44. Test Access to Private File
+GET {{baseUrl}}/files/private-file-id
+Authorization: Bearer {{accessToken}}
+
+### ============= TESTING NOTES =============
+
+### 📝 Prerequisites:
+# 1. Must have valid accessToken from auth.http
+# 2. Need channelId and serverId for context
+# 3. Update @fileId after uploading files
+# 4. Prepare test files: images, documents, videos
+
+### 🔒 Rate Limits:
+# - File Upload: 5 requests/min (small files), 2 requests/min (large files)
+# - File Operations: 20 requests/min
+# - Avatar Upload: 3 requests/min
+# - File Search: 30 requests/min
+# - File Download: 100 requests/min
+
+### 📊 File Limits:
+# - Max file size: 100MB (regular), 500MB (premium)
+# - Allowed types: images, documents, videos, audio
+# - Avatar: 8MB max, JPG/PNG/GIF only
+# - Server icon: 10MB max, JPG/PNG only
+
+### 🎯 Test Flow:
+# 1. Upload various file types
+# 2. Test file management operations
+# 3. Test avatar/server icon features
+# 4. Test file sharing functionality
+# 5. Test file processing (thumbnails, variants)
+# 6. Test search and analytics
+
+### 📊 Expected Results:
+# - Files upload successfully with metadata
+# - Thumbnails generate automatically
+# - Share links work without authentication
+# - File search returns accurate results
+# - Storage quotas are enforced
+# - Rate limiting prevents abuse
+
+### 💾 Storage Features:
+# - Automatic thumbnail generation
+# - Multiple image formats (WebP optimization)
+# - CDN integration for fast delivery
+# - File deduplication
+# - Automatic virus scanning
+# - Storage quota management

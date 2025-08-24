@@ -39,7 +39,7 @@ export class MediaFileController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'media-file',
+      'file',
       '/files/upload',
       formData,
       {
@@ -69,7 +69,7 @@ export class MediaFileController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'media-file',
+      'file',
       '/files/upload-multiple',
       formData,
       {
@@ -90,7 +90,7 @@ export class MediaFileController {
   async getFileInfo(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/${id}?userId=${req.user.id}`,
       config,
     );
@@ -102,7 +102,7 @@ export class MediaFileController {
   async deleteFile(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'media-file',
+      'file',
       `/files/${id}?userId=${req.user.id}`,
       config,
     );
@@ -114,7 +114,7 @@ export class MediaFileController {
   async getUserFiles(@Param('userId') userId: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/user/${userId}?requesterId=${req.user.id}`,
       config,
     );
@@ -133,7 +133,7 @@ export class MediaFileController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'media-file',
+      'file',
       '/avatars/upload',
       formData,
       {
@@ -152,7 +152,7 @@ export class MediaFileController {
   async deleteAvatar(@Param('userId') userId: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'media-file',
+      'file',
       `/avatars/${userId}?requesterId=${req.user.id}`,
       config,
     );
@@ -176,7 +176,7 @@ export class MediaFileController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'media-file',
+      'file',
       `/servers/${serverId}/icon`,
       formData,
       {
@@ -198,7 +198,7 @@ export class MediaFileController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'media-file',
+      'file',
       `/servers/${serverId}/icon?userId=${req.user.id}`,
       config,
     );
@@ -221,7 +221,7 @@ export class MediaFileController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'media-file',
+      'file',
       `/files/${id}/share`,
       shareData,
       config,
@@ -234,7 +234,7 @@ export class MediaFileController {
   async getSharedFile(@Param('token') token: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/shared/${token}?userId=${req.user.id}`,
       config,
     );
@@ -248,7 +248,7 @@ export class MediaFileController {
   async getFileThumbnail(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/${id}/thumbnail?userId=${req.user.id}`,
       config,
     );
@@ -260,7 +260,7 @@ export class MediaFileController {
   async downloadFile(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/${id}/download?userId=${req.user.id}`,
       config,
     );
@@ -274,7 +274,7 @@ export class MediaFileController {
   async getFileUsageAnalytics(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/analytics/usage?userId=${req.user.id}`,
       config,
     );
@@ -286,7 +286,7 @@ export class MediaFileController {
   async getStorageAnalytics(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'media-file',
+      'file',
       `/files/analytics/storage?userId=${req.user.id}`,
       config,
     );

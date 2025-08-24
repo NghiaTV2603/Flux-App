@@ -147,7 +147,12 @@ export class ServerController {
     @Body() updateRoleDto: UpdateRoleDto,
     @Query("userId") userId: string
   ) {
-    return this.serverService.updateRole(serverId, roleId, updateRoleDto, userId);
+    return this.serverService.updateRole(
+      serverId,
+      roleId,
+      updateRoleDto,
+      userId
+    );
   }
 
   // Delete role
@@ -169,7 +174,12 @@ export class ServerController {
     @Param("roleId") roleId: string,
     @Query("userId") userId: string
   ) {
-    return this.serverService.assignRoleToMember(serverId, memberId, roleId, userId);
+    return this.serverService.assignRoleToMember(
+      serverId,
+      memberId,
+      roleId,
+      userId
+    );
   }
 
   // Remove role from member
@@ -181,7 +191,12 @@ export class ServerController {
     @Param("roleId") roleId: string,
     @Query("userId") userId: string
   ) {
-    return this.serverService.removeRoleFromMember(serverId, memberId, roleId, userId);
+    return this.serverService.removeRoleFromMember(
+      serverId,
+      memberId,
+      roleId,
+      userId
+    );
   }
 
   // CHANNEL MANAGEMENT ENDPOINTS
@@ -214,7 +229,12 @@ export class ServerController {
     @Body() updateChannelDto: UpdateChannelDto,
     @Query("userId") userId: string
   ) {
-    return this.serverService.updateChannel(serverId, channelId, updateChannelDto, userId);
+    return this.serverService.updateChannel(
+      serverId,
+      channelId,
+      updateChannelDto,
+      userId
+    );
   }
 
   // Delete channel
@@ -246,7 +266,12 @@ export class ServerController {
     @Body("targetUserId") targetUserId: string,
     @Query("userId") userId: string
   ) {
-    return this.serverService.addMemberToChannel(serverId, channelId, targetUserId, userId);
+    return this.serverService.addMemberToChannel(
+      serverId,
+      channelId,
+      targetUserId,
+      userId
+    );
   }
 
   // Remove member from channel
@@ -258,6 +283,11 @@ export class ServerController {
     @Param("targetUserId") targetUserId: string,
     @Query("userId") userId: string
   ) {
-    return this.serverService.removeMemberFromChannel(serverId, channelId, targetUserId, userId);
+    return this.serverService.removeMemberFromChannel(
+      serverId,
+      channelId,
+      targetUserId,
+      userId
+    );
   }
 }

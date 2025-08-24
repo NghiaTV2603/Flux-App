@@ -1,0 +1,236 @@
+### 👥 User & Social Service - Gateway API Tests
+### Routes through API Gateway to User Service (Port 3002)
+
+### Import shared variables
+< _shared-vars.http
+
+### ============= USER PROFILE MANAGEMENT =============
+
+### 1. Get User Profile
+GET {{baseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 2. Update User Profile
+PATCH {{baseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Gateway User Updated",
+  "bio": "Testing user profile via Gateway API",
+  "avatarUrl": "{{testAvatarUrl}}",
+  "customStatus": "Building with Gateway API",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "language": "vi"
+}
+
+### 3. Get User Status
+GET {{baseUrl}}/users/status/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 4. Update User Status
+PATCH {{baseUrl}}/users/{{testUserId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "customStatus": "Testing Gateway API 🚀"
+}
+
+### 5. Search Users
+GET {{baseUrl}}/users?q=gateway&currentUserId={{testUserId}}&limit=10
+Authorization: Bearer {{accessToken}}
+
+### ============= USER SETTINGS =============
+
+### 6. Get User Settings
+GET {{baseUrl}}/users/{{testUserId}}/settings
+Authorization: Bearer {{accessToken}}
+
+### 7. Update User Settings
+PATCH {{baseUrl}}/users/{{testUserId}}/settings
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "notificationsEnabled": true,
+  "soundEnabled": true,
+  "showOnlineStatus": true,
+  "allowDirectMessages": true,
+  "allowFriendRequests": true,
+  "privacySettings": {
+    "showActivity": true,
+    "allowServerInvites": true
+  }
+}
+
+### ============= FRIEND MANAGEMENT =============
+
+### 8. Send Friend Request
+# @name sendFriendRequest
+POST {{baseUrl}}/friends/request
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "requesterId": "{{testUserId}}",
+  "addresseeId": "{{testUser2Id}}",
+  "message": "Friend request via Gateway API! 🤝"
+}
+
+### 9. Get Pending Friend Requests (Received)
+GET {{baseUrl}}/friends/pending
+Authorization: Bearer {{accessToken}}
+
+### 10. Get Sent Friend Requests
+GET {{baseUrl}}/friends/sent
+Authorization: Bearer {{accessToken}}
+
+### 11. Accept Friend Request
+POST {{baseUrl}}/friends/accept
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{testUserId}}",
+  "friendshipId": "{{friendshipId}}"
+}
+
+### 12. Decline Friend Request
+POST {{baseUrl}}/friends/respond
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "friendshipId": "{{friendshipId}}",
+  "action": "declined"
+}
+
+### 13. Get Friends List
+GET {{baseUrl}}/friends
+Authorization: Bearer {{accessToken}}
+
+### 14. Remove Friend
+DELETE {{baseUrl}}/friends/remove
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{testUserId}}",
+  "friendId": "{{testUser2Id}}"
+}
+
+### ============= USER BLOCKING =============
+
+### 15. Block User
+POST {{baseUrl}}/friends/block
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "blockerId": "{{testUserId}}",
+  "blockedId": "{{testUser3Id}}",
+  "reason": "Testing block functionality via Gateway"
+}
+
+### 16. Get Blocked Users
+GET {{baseUrl}}/friends/blocked
+Authorization: Bearer {{accessToken}}
+
+### 17. Unblock User
+DELETE {{baseUrl}}/unblock
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "blockerId": "{{testUserId}}",
+  "blockedId": "{{testUser3Id}}"
+}
+
+### ============= USER ACTIVITY =============
+
+### 18. Set User Activity
+POST {{baseUrl}}/users/{{testUserId}}/activities
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "activityType": "playing",
+  "name": "Testing Gateway API",
+  "details": "Building microservices",
+  "state": "In Development",
+  "timestamps": {
+    "start": "2025-08-23T12:00:00Z"
+  }
+}
+
+### 19. Get User Activities
+GET {{baseUrl}}/users/{{testUserId}}/activities
+Authorization: Bearer {{accessToken}}
+
+### 20. Clear User Activity
+DELETE {{baseUrl}}/users/{{testUserId}}/activities
+Authorization: Bearer {{accessToken}}
+
+### ============= USER DIRECTORY =============
+
+### 21. Get User Directory (for mentions, searches)
+GET {{baseUrl}}/users/directory?q=test&limit=20
+Authorization: Bearer {{accessToken}}
+
+### 22. Get Online Friends
+GET {{baseUrl}}/friends?status=online
+Authorization: Bearer {{accessToken}}
+
+### ============= ERROR TESTING =============
+
+### 23. Test Access to Other User's Settings (Should fail)
+GET {{baseUrl}}/users/{{testUser2Id}}/settings
+Authorization: Bearer {{accessToken}}
+
+### 24. Test Invalid User ID
+GET {{baseUrl}}/users/invalid-user-id
+Authorization: Bearer {{accessToken}}
+
+### 25. Test Rate Limiting - Friend Requests (Send multiple quickly)
+POST {{baseUrl}}/friends/request
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "requesterId": "{{testUserId}}",
+  "addresseeId": "{{testUser2Id}}",
+  "message": "Spam request for rate limit test"
+}
+
+### ============= TESTING NOTES =============
+
+### 📝 Prerequisites:
+# 1. Must have valid accessToken from auth.http
+# 2. Need testUser2Id and testUser3Id for friend/social tests
+# 3. Run auth.http first to get authentication
+
+### 🔒 Rate Limits:
+# - Profile Updates: 10 requests/min
+# - Friend Requests: 10 requests/min
+# - Friend Actions: 20 requests/min
+# - User Search: 50 requests/min
+# - Status Updates: 100 requests/min
+
+### 🎯 Test Flow:
+# 1. Update user profile & settings
+# 2. Test user search functionality
+# 3. Send friend requests
+# 4. Accept/decline friend requests
+# 5. Test blocking functionality
+# 6. Set user activities
+# 7. Test error scenarios
+
+### 📊 Expected Results:
+# - Profile updates reflect in subsequent GET requests
+# - Friend requests appear in pending lists
+# - Blocked users can't send friend requests
+# - Rate limiting prevents spam
+# - Privacy settings are respected

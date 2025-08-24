@@ -18,7 +18,7 @@ export class UserClientService {
     // Default to user service port, can be configured via env
     this.userServiceUrl =
       this.configService.get<string>("userService.url") ||
-      "http://localhost:3001";
+      "http://localhost:3002";
   }
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {

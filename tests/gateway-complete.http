@@ -9,11 +9,11 @@
 @testPassword = demarco1
 
 # Tokens sẽ được update sau khi login thành công
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1Mjc4ZDcyMC02ZDdkLTQwNDEtODRkYS01MmRhYmQxODliNmUiLCJpYXQiOjE3NTU4NDcwMDQsImV4cCI6MTc1NTg1MDYwNH0.ob7xBBQE-mRnTlQuQz4r4tbz8N75sfKyREcOE_h2T1Q
-@refreshToken = 0cf59fa3ba446fadb727f1225fe288e40e70c17dacad42eebb584a87b2f78fb2db113f27f1caeb4f815d5c3f34fb52363af7a1a02454476c3a55238ff6b30f7e
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzM3ZDkwMi02NDI4LTQ4MDItYWQyNS1jNjE5NjRhOTQzYWUiLCJpYXQiOjE3NTU5NjU5MTAsImV4cCI6MTc1NTk2OTUxMH0.yIpQ_2EwZ-I6Wrnz74IuayrOQBqsyY_cdA8A32x0zAg
+@refreshToken = f2297d080f5a3091e09643c7e7f26636aedacf8680ed029f6072c407f4c2145670f7f6f253a68b1868973c7a0274d6c6d48e4d3de1205395393f67f475145c28
 
 # IDs sẽ được update từ API responses
-@testUserId = 5278d720-6d7d-4041-84da-52dabd189b6e
+@testUserId = a337d902-6428-4802-ad25-c61964a943ae
 @serverId = paste-server-id-here
 @channelId = paste-channel-id-here
 @roleId = paste-role-id-here
@@ -184,7 +184,7 @@ Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "name": "Gateway Test Server",
+  "name": "Server test 1",
   "description": "Server created via Gateway API",
   "isPublic": false
 }

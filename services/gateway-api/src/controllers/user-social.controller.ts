@@ -28,15 +28,10 @@ export class UserSocialController {
   // ============= USER PROFILE ENDPOINTS =============
 
   @Get('users/:id')
-  @RateLimit({ limit: 100, windowMs: 60 * 1000 }) // 100 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 100 requests per minute
   async getUserById(@Param('id') id: string, @Request() req: any) {
-    console.log('------ check data getUserById', id);
     const config = this.httpClient.createConfigWithAuth(req.token);
-    const response = await this.httpClient.get(
-      'user-social',
-      `/users/${id}`,
-      config,
-    );
+    const response = await this.httpClient.get('user', `/users/${id}`, config);
     return response.data;
   }
 
@@ -49,7 +44,7 @@ export class UserSocialController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'user-social',
+      'user',
       `/users/${id}`,
       updateDto,
       config,
@@ -62,7 +57,7 @@ export class UserSocialController {
   async getUserStatus(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'user-social',
+      'user',
       `/users/status/${id}`,
       config,
     );
@@ -73,7 +68,7 @@ export class UserSocialController {
   @RateLimit({ limit: 50, windowMs: 60 * 1000 }) // 50 requests per minute
   async searchUsers(@Query() query: any, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
-    const response = await this.httpClient.get('user-social', '/users/search', {
+    const response = await this.httpClient.get('user', '/users/search', {
       ...config,
       params: query,
     });
@@ -87,8 +82,8 @@ export class UserSocialController {
   async sendFriendRequest(@Body() requestDto: any, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'user-social',
-      '/friends/request',
+      'user',
+      '/users/friends/request',
       requestDto,
       config,
     );
@@ -100,8 +95,8 @@ export class UserSocialController {
   async acceptFriendRequest(@Body() acceptDto: any, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'user-social',
-      '/friends/accept',
+      'user',
+      '/users/friends/respond',
       acceptDto,
       config,
     );
@@ -113,8 +108,8 @@ export class UserSocialController {
   async blockUser(@Body() blockDto: any, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'user-social',
-      '/friends/block',
+      'user',
+      '/users/block',
       blockDto,
       config,
     );
@@ -126,8 +121,8 @@ export class UserSocialController {
   async removeFriend(@Body() removeDto: any, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'user-social',
-      '/friends/remove',
+      'user',
+      '/users/friends/remove',
       {
         ...config,
         data: removeDto,
@@ -141,8 +136,8 @@ export class UserSocialController {
   async getFriends(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'user-social',
-      '/friends',
+      'user',
+      '/users/friends',
       config,
     );
     return response.data;
@@ -153,8 +148,8 @@ export class UserSocialController {
   async getPendingRequests(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'user-social',
-      '/friends/pending',
+      'user',
+      '/users/friends/pending',
       config,
     );
     return response.data;
@@ -165,8 +160,8 @@ export class UserSocialController {
   async getBlockedUsers(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'user-social',
-      '/friends/blocked',
+      'user',
+      '/users/blocked',
       config,
     );
     return response.data;

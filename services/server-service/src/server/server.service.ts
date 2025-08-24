@@ -31,18 +31,30 @@ export class ServerService {
 
   // Helper function to check if member has role
   private hasRole(member: any, roleName: string): boolean {
-    if (!member.roles || !Array.isArray(member.roles)) return false;
-    return member.roles.some((role: any) => role.name === roleName);
+    if (!member.memberRoles || !Array.isArray(member.memberRoles)) return false;
+    return member.memberRoles.some(
+      (memberRole: any) => memberRole.role && memberRole.role.name === roleName
+    );
   }
 
   // Helper function to get member's primary role
   private getMemberRole(member: any): string {
-    if (!member.roles || !Array.isArray(member.roles)) return "member";
+    if (!member.memberRoles || !Array.isArray(member.memberRoles))
+      return "member";
 
-    // Priority: owner > admin > member
-    if (member.roles.some((role: any) => role.name === "owner")) return "owner";
-    if (member.roles.some((role: any) => role.name === "admin")) return "admin";
-    return "member";
+    // Find highest priority role based on position
+    let highestRole = { name: "member", position: 0 };
+
+    for (const memberRole of member.memberRoles) {
+      if (memberRole.role && memberRole.role.position > highestRole.position) {
+        highestRole = {
+          name: memberRole.role.name,
+          position: memberRole.role.position,
+        };
+      }
+    }
+
+    return highestRole.name;
   }
 
   // Generate unique invite code
@@ -158,7 +170,16 @@ export class ServerService {
 
       return {
         server,
-        roles: [ownerRole, memberRole],
+        roles: [
+          {
+            ...ownerRole,
+            permissions: ownerRole.permissions.toString(),
+          },
+          {
+            ...memberRole,
+            permissions: memberRole.permissions.toString(),
+          },
+        ],
         channels: [generalTextChannel, generalVoiceChannel],
         member: serverMember,
       };
@@ -195,7 +216,15 @@ export class ServerService {
     const server = await this.prisma.server.findUnique({
       where: { id },
       include: {
-        members: true,
+        members: {
+          include: {
+            memberRoles: {
+              include: {
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -222,16 +251,16 @@ export class ServerService {
     updateServerDto: UpdateServerDto,
     userId: string
   ) {
-    const server = await this.getServerById(id);
+    // Check if user has MANAGE_SERVER permission
+    const hasPermission = await this.hasPermission(
+      id,
+      userId,
+      ServerPermission.MANAGE_SERVER
+    );
 
-    // Check if user is owner or admin
-    const member = server.members.find((m) => m.userId === userId);
-    if (
-      !member ||
-      (!this.hasRole(member, "owner") && !this.hasRole(member, "admin"))
-    ) {
+    if (!hasPermission) {
       throw new ForbiddenException(
-        "Only server owners and admins can update server"
+        "You don't have permission to manage this server"
       );
     }
 
@@ -382,16 +411,16 @@ export class ServerService {
 
   // Generate new invite code
   async generateNewInviteCode(serverId: string, userId: string) {
-    const server = await this.getServerById(serverId);
+    // Check if user has CREATE_INVITES permission
+    const hasPermission = await this.hasPermission(
+      serverId,
+      userId,
+      ServerPermission.CREATE_INVITES
+    );
 
-    // Check if user is owner or admin
-    const member = server.members.find((m) => m.userId === userId);
-    if (
-      !member ||
-      (!this.hasRole(member, "owner") && !this.hasRole(member, "admin"))
-    ) {
+    if (!hasPermission) {
       throw new ForbiddenException(
-        "Only server owners and admins can generate invite codes"
+        "You don't have permission to create invites"
       );
     }
 
@@ -437,14 +466,16 @@ export class ServerService {
   ) {
     const server = await this.getServerById(serverId);
 
-    // Check if user is owner or admin
-    const requester = server.members.find((m) => m.userId === userId);
-    if (
-      !requester ||
-      (!this.hasRole(requester, "owner") && !this.hasRole(requester, "admin"))
-    ) {
+    // Check if user has MANAGE_MEMBERS permission
+    const hasPermission = await this.hasPermission(
+      serverId,
+      userId,
+      ServerPermission.MANAGE_MEMBERS
+    );
+
+    if (!hasPermission) {
       throw new ForbiddenException(
-        "Only server owners and admins can update members"
+        "You don't have permission to manage members"
       );
     }
 
@@ -478,14 +509,16 @@ export class ServerService {
   async removeMember(serverId: string, memberId: string, userId: string) {
     const server = await this.getServerById(serverId);
 
-    // Check if user is owner or admin
-    const requester = server.members.find((m) => m.userId === userId);
-    if (
-      !requester ||
-      (!this.hasRole(requester, "owner") && !this.hasRole(requester, "admin"))
-    ) {
+    // Check if user has MANAGE_MEMBERS permission
+    const hasPermission = await this.hasPermission(
+      serverId,
+      userId,
+      ServerPermission.MANAGE_MEMBERS
+    );
+
+    if (!hasPermission) {
       throw new ForbiddenException(
-        "Only server owners and admins can remove members"
+        "You don't have permission to manage members"
       );
     }
 
@@ -495,15 +528,23 @@ export class ServerService {
       throw new NotFoundException("Member not found");
     }
 
-    // Cannot remove owner
-    if (this.hasRole(targetMember, "owner")) {
+    // Cannot remove server owner
+    if (server.ownerId === targetMember.userId) {
       throw new ForbiddenException("Cannot remove server owner");
     }
 
-    // Only owner can remove admin
+    const targetPermissions = await this.getMemberPermissions(
+      serverId,
+      targetMember.userId
+    );
+
+    // If target has MANAGE_SERVER permission, only owner can remove them
     if (
-      this.hasRole(targetMember, "admin") &&
-      !this.hasRole(requester, "owner")
+      PermissionHelper.hasPermission(
+        targetPermissions,
+        ServerPermission.MANAGE_SERVER
+      ) &&
+      server.ownerId !== userId
     ) {
       throw new ForbiddenException("Only server owner can remove admins");
     }

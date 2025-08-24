@@ -26,29 +26,24 @@ export class ServerChannelController {
   // ============= SERVER MANAGEMENT ENDPOINTS =============
 
   @Post('servers')
-  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000 }) // 5 servers per hour
+  @RateLimit({ limit: 1000, windowMs: 60 * 60 * 1000 }) // 5 servers per hour
   async createServer(@Body() createServerDto: any, @Request() req: any) {
-    const serverData = {
-      ...createServerDto,
-      ownerId: req.user.id,
-    };
-
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
-      '/servers',
-      serverData,
+      'server',
+      `/servers?userId=${req.user.id}`,
+      createServerDto,
       config,
     );
     return response.data;
   }
 
   @Get('servers/my-servers')
-  @RateLimit({ limit: 50, windowMs: 60 * 1000 }) // 50 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 50 requests per minute
   async getUserServers(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'server-channel',
+      'server',
       `/servers/user/${req.user.id}`,
       config,
     );
@@ -56,11 +51,11 @@ export class ServerChannelController {
   }
 
   @Get('servers/:id')
-  @RateLimit({ limit: 100, windowMs: 60 * 1000 }) // 100 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 100 requests per minute
   async getServer(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'server-channel',
+      'server',
       `/servers/${id}?userId=${req.user.id}`,
       config,
     );
@@ -68,7 +63,7 @@ export class ServerChannelController {
   }
 
   @Patch('servers/:id')
-  @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 10 requests per minute
   async updateServer(
     @Param('id') id: string,
     @Body() updateDto: any,
@@ -76,7 +71,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'server-channel',
+      'server',
       `/servers/${id}?userId=${req.user.id}`,
       updateDto,
       config,
@@ -85,11 +80,11 @@ export class ServerChannelController {
   }
 
   @Delete('servers/:id')
-  @RateLimit({ limit: 3, windowMs: 60 * 60 * 1000 }) // 3 deletes per hour
+  @RateLimit({ limit: 1000, windowMs: 60 * 60 * 1000 }) // 3 deletes per hour
   async deleteServer(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'server-channel',
+      'server',
       `/servers/${id}?userId=${req.user.id}`,
       config,
     );
@@ -97,7 +92,7 @@ export class ServerChannelController {
   }
 
   @Post('servers/join')
-  @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 joins per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 20 joins per minute
   async joinServer(@Body() joinDto: any, @Request() req: any) {
     const joinData = {
       ...joinDto,
@@ -106,7 +101,7 @@ export class ServerChannelController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
+      'server',
       '/servers/join',
       joinData,
       config,
@@ -115,11 +110,11 @@ export class ServerChannelController {
   }
 
   @Post('servers/:id/invite')
-  @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 invites per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 10 invites per minute
   async createInvite(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
+      'server',
       `/servers/${id}/invite?userId=${req.user.id}`,
       {},
       config,
@@ -130,11 +125,11 @@ export class ServerChannelController {
   // ============= MEMBER MANAGEMENT ENDPOINTS =============
 
   @Get('servers/:id/members')
-  @RateLimit({ limit: 50, windowMs: 60 * 1000 }) // 50 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 50 requests per minute
   async getMembers(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'server-channel',
+      'server',
       `/servers/${id}/members?userId=${req.user.id}`,
       config,
     );
@@ -142,7 +137,7 @@ export class ServerChannelController {
   }
 
   @Patch('servers/:id/members/:memberId')
-  @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 20 requests per minute
   async updateMember(
     @Param('id') id: string,
     @Param('memberId') memberId: string,
@@ -151,7 +146,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'server-channel',
+      'server',
       `/servers/${id}/members/${memberId}?userId=${req.user.id}`,
       updateDto,
       config,
@@ -160,7 +155,7 @@ export class ServerChannelController {
   }
 
   @Delete('servers/:id/members/:memberId')
-  @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 kicks per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 10 kicks per minute
   async kickMember(
     @Param('id') id: string,
     @Param('memberId') memberId: string,
@@ -168,7 +163,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'server-channel',
+      'server',
       `/servers/${id}/members/${memberId}?userId=${req.user.id}`,
       config,
     );
@@ -178,7 +173,7 @@ export class ServerChannelController {
   // ============= CHANNEL MANAGEMENT ENDPOINTS =============
 
   @Post('servers/:id/channels')
-  @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 channels per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 20 channels per minute
   async createChannel(
     @Param('id') id: string,
     @Body() createChannelDto: any,
@@ -186,7 +181,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
+      'server',
       `/servers/${id}/channels?userId=${req.user.id}`,
       createChannelDto,
       config,
@@ -195,70 +190,115 @@ export class ServerChannelController {
   }
 
   @Get('servers/:id/channels')
-  @RateLimit({ limit: 100, windowMs: 60 * 1000 }) // 100 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 100 requests per minute
   async getChannels(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'server-channel',
+      'server',
       `/servers/${id}/channels?userId=${req.user.id}`,
       config,
     );
     return response.data;
   }
 
-  @Get('channels/:id')
-  @RateLimit({ limit: 100, windowMs: 60 * 1000 }) // 100 requests per minute
-  async getChannel(@Param('id') id: string, @Request() req: any) {
+  @Get('servers/:serverId/channels/:channelId')
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 100 requests per minute
+  async getChannel(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Request() req: any,
+  ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'server-channel',
-      `/channels/${id}?userId=${req.user.id}`,
+      'server',
+      `/servers/${serverId}/channels/${channelId}?userId=${req.user.id}`,
       config,
     );
     return response.data;
   }
 
-  @Patch('channels/:id')
-  @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 requests per minute
+  @Patch('servers/:serverId/channels/:channelId')
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 10 requests per minute
   async updateChannel(
-    @Param('id') id: string,
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
     @Body() updateDto: any,
     @Request() req: any,
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'server-channel',
-      `/channels/${id}?userId=${req.user.id}`,
+      'server',
+      `/servers/${serverId}/channels/${channelId}?userId=${req.user.id}`,
       updateDto,
       config,
     );
     return response.data;
   }
 
-  @Delete('channels/:id')
-  @RateLimit({ limit: 5, windowMs: 60 * 1000 }) // 5 deletes per minute
-  async deleteChannel(@Param('id') id: string, @Request() req: any) {
+  @Delete('servers/:serverId/channels/:channelId')
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 5 deletes per minute
+  async deleteChannel(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Request() req: any,
+  ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'server-channel',
-      `/channels/${id}?userId=${req.user.id}`,
+      'server',
+      `/servers/${serverId}/channels/${channelId}?userId=${req.user.id}`,
       config,
     );
     return response.data;
   }
 
-  @Post('channels/:id/permissions')
-  @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 requests per minute
-  async updateChannelPermissions(
-    @Param('id') id: string,
-    @Body() permissionsDto: any,
+  // ============= CHANNEL MEMBER MANAGEMENT ENDPOINTS =============
+
+  @Get('servers/:serverId/channels/:channelId/members')
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 50 requests per minute
+  async getChannelMembers(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Request() req: any,
+  ) {
+    const config = this.httpClient.createConfigWithAuth(req.token);
+    const response = await this.httpClient.get(
+      'server',
+      `/servers/${serverId}/channels/${channelId}/members?userId=${req.user.id}`,
+      config,
+    );
+    return response.data;
+  }
+
+  @Post('servers/:serverId/channels/:channelId/members')
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 30 requests per minute
+  async addMemberToChannel(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Body('targetUserId') targetUserId: string,
     @Request() req: any,
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
-      `/channels/${id}/permissions?userId=${req.user.id}`,
-      permissionsDto,
+      'server',
+      `/servers/${serverId}/channels/${channelId}/members?userId=${req.user.id}`,
+      { targetUserId },
+      config,
+    );
+    return response.data;
+  }
+
+  @Delete('servers/:serverId/channels/:channelId/members/:targetUserId')
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 20 requests per minute
+  async removeMemberFromChannel(
+    @Param('serverId') serverId: string,
+    @Param('channelId') channelId: string,
+    @Param('targetUserId') targetUserId: string,
+    @Request() req: any,
+  ) {
+    const config = this.httpClient.createConfigWithAuth(req.token);
+    const response = await this.httpClient.delete(
+      'server',
+      `/servers/${serverId}/channels/${channelId}/members/${targetUserId}?userId=${req.user.id}`,
       config,
     );
     return response.data;
@@ -267,7 +307,7 @@ export class ServerChannelController {
   // ============= ROLE MANAGEMENT ENDPOINTS =============
 
   @Post('servers/:id/roles')
-  @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 roles per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 10 roles per minute
   async createRole(
     @Param('id') id: string,
     @Body() createRoleDto: any,
@@ -275,7 +315,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
+      'server',
       `/servers/${id}/roles?userId=${req.user.id}`,
       createRoleDto,
       config,
@@ -284,11 +324,11 @@ export class ServerChannelController {
   }
 
   @Get('servers/:id/roles')
-  @RateLimit({ limit: 50, windowMs: 60 * 1000 }) // 50 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 50 requests per minute
   async getRoles(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'server-channel',
+      'server',
       `/servers/${id}/roles?userId=${req.user.id}`,
       config,
     );
@@ -296,7 +336,7 @@ export class ServerChannelController {
   }
 
   @Patch('servers/:id/roles/:roleId')
-  @RateLimit({ limit: 20, windowMs: 60 * 1000 }) // 20 requests per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 20 requests per minute
   async updateRole(
     @Param('id') id: string,
     @Param('roleId') roleId: string,
@@ -305,7 +345,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'server-channel',
+      'server',
       `/servers/${id}/roles/${roleId}?userId=${req.user.id}`,
       updateDto,
       config,
@@ -314,7 +354,7 @@ export class ServerChannelController {
   }
 
   @Delete('servers/:id/roles/:roleId')
-  @RateLimit({ limit: 10, windowMs: 60 * 1000 }) // 10 deletes per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 10 deletes per minute
   async deleteRole(
     @Param('id') id: string,
     @Param('roleId') roleId: string,
@@ -322,7 +362,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'server-channel',
+      'server',
       `/servers/${id}/roles/${roleId}?userId=${req.user.id}`,
       config,
     );
@@ -330,7 +370,7 @@ export class ServerChannelController {
   }
 
   @Post('servers/:id/members/:memberId/roles/:roleId')
-  @RateLimit({ limit: 30, windowMs: 60 * 1000 }) // 30 assigns per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 30 assigns per minute
   async assignRole(
     @Param('id') id: string,
     @Param('memberId') memberId: string,
@@ -339,7 +379,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'server-channel',
+      'server',
       `/servers/${id}/members/${memberId}/roles/${roleId}?userId=${req.user.id}`,
       {},
       config,
@@ -348,7 +388,7 @@ export class ServerChannelController {
   }
 
   @Delete('servers/:id/members/:memberId/roles/:roleId')
-  @RateLimit({ limit: 30, windowMs: 60 * 1000 }) // 30 removes per minute
+  @RateLimit({ limit: 1000, windowMs: 60 * 1000 }) // 30 removes per minute
   async removeRole(
     @Param('id') id: string,
     @Param('memberId') memberId: string,
@@ -357,7 +397,7 @@ export class ServerChannelController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'server-channel',
+      'server',
       `/servers/${id}/members/${memberId}/roles/${roleId}?userId=${req.user.id}`,
       config,
     );

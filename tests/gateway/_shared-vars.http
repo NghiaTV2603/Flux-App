@@ -1,0 +1,32 @@
+### 🌐 Gateway API - Shared Variables
+### Tất cả variables dùng chung cho testing qua Gateway
+
+### Base Configuration
+@baseUrl = http://localhost:3000/api
+
+### Test User Credentials
+@testEmail = demarco1@gmail.com
+@testUsername = demarco1
+@testPassword = demarco1
+
+### Authentication Tokens (Update after login)
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzM3ZDkwMi02NDI4LTQ4MDItYWQyNS1jNjE5NjRhOTQzYWUiLCJpYXQiOjE3NTU5NjU5MTAsImV4cCI6MTc1NTk2OTUxMH0.yIpQ_2EwZ-I6Wrnz74IuayrOQBqsyY_cdA8A32x0zAg
+@refreshToken = f2297d080f5a3091e09643c7e7f26636aedacf8680ed029f6072c407f4c2145670f7f6f253a68b1868973c7a0274d6c6d48e4d3de1205395393f67f475145c28
+
+### Resource IDs (Update from API responses)
+@testUserId = a337d902-6428-4802-ad25-c61964a943ae
+@serverId = paste-server-id-here
+@channelId = paste-channel-id-here
+@roleId = paste-role-id-here
+@messageId = paste-message-id-here
+@fileId = paste-file-id-here
+@friendshipId = paste-friendship-id-here
+@notificationId = paste-notification-id-here
+
+### Additional Test Users (for friend/social features)
+@testUser2Id = paste-test-user-2-id-here
+@testUser3Id = paste-test-user-3-id-here
+
+### File Upload Test Data
+@testImageUrl = https://example.com/test-image.jpg
+@testAvatarUrl = https://example.com/test-avatar.jpg

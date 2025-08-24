@@ -30,7 +30,7 @@ export class RealtimeController {
   async establishWebSocketConnection(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/ws/connect?userId=${req.user.id}`,
       config,
     );
@@ -47,7 +47,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       '/ws/disconnect',
       disconnectData,
       config,
@@ -71,7 +71,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/join`,
       joinData,
       config,
@@ -87,7 +87,7 @@ export class RealtimeController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/leave?userId=${req.user.id}`,
       {},
       config,
@@ -103,7 +103,7 @@ export class RealtimeController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/users?userId=${req.user.id}`,
       config,
     );
@@ -127,7 +127,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/users/${userId}/mute`,
       muteData,
       config,
@@ -150,7 +150,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/users/${userId}/deafen`,
       deafenData,
       config,
@@ -174,7 +174,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/screen-share/start`,
       screenShareData,
       config,
@@ -190,7 +190,7 @@ export class RealtimeController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       `/voice/channels/${channelId}/screen-share/stop?userId=${req.user.id}`,
       {},
       config,
@@ -205,7 +205,7 @@ export class RealtimeController {
   async getNotifications(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/notifications?userId=${req.user.id}`,
       config,
     );
@@ -217,7 +217,7 @@ export class RealtimeController {
   async markNotificationAsRead(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.patch(
-      'realtime',
+      'voice',
       `/notifications/${id}/read?userId=${req.user.id}`,
       {},
       config,
@@ -238,7 +238,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       '/notifications/settings',
       settingsData,
       config,
@@ -251,7 +251,7 @@ export class RealtimeController {
   async deleteNotification(@Param('id') id: string, @Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.delete(
-      'realtime',
+      'voice',
       `/notifications/${id}?userId=${req.user.id}`,
       config,
     );
@@ -270,7 +270,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       '/presence/update',
       presenceData,
       config,
@@ -286,7 +286,7 @@ export class RealtimeController {
   ) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/presence/server/${serverId}?userId=${req.user.id}`,
       config,
     );
@@ -298,7 +298,7 @@ export class RealtimeController {
   async getFriendsPresence(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/presence/friends?userId=${req.user.id}`,
       config,
     );
@@ -317,7 +317,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       '/typing/start',
       typingData,
       config,
@@ -335,7 +335,7 @@ export class RealtimeController {
 
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.post(
-      'realtime',
+      'voice',
       '/typing/stop',
       typingData,
       config,
@@ -350,7 +350,7 @@ export class RealtimeController {
   async getVoiceSessionAnalytics(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/voice/analytics/sessions?userId=${req.user.id}`,
       config,
     );
@@ -362,7 +362,7 @@ export class RealtimeController {
   async getVoiceUsageAnalytics(@Request() req: any) {
     const config = this.httpClient.createConfigWithAuth(req.token);
     const response = await this.httpClient.get(
-      'realtime',
+      'voice',
       `/voice/analytics/usage?userId=${req.user.id}`,
       config,
     );

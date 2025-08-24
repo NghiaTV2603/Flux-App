@@ -1,0 +1,430 @@
+### ⚡ Realtime Service - Gateway API Tests
+### Routes through API Gateway to Voice/Realtime Service (Port 3010)
+
+### Import shared variables
+< _shared-vars.http
+
+### ============= WEBSOCKET CONNECTIONS =============
+
+### 1. Establish WebSocket Connection
+GET {{baseUrl}}/ws/connect
+Authorization: Bearer {{accessToken}}
+
+### 2. Get WebSocket Connection Info
+GET {{baseUrl}}/ws/info
+Authorization: Bearer {{accessToken}}
+
+### 3. Disconnect WebSocket
+POST {{baseUrl}}/ws/disconnect
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Manual disconnect via Gateway API test"
+}
+
+### ============= VOICE CHANNELS =============
+
+### 4. Join Voice Channel
+# @name joinVoice
+POST {{baseUrl}}/voice/channels/{{channelId}}/join
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muted": false,
+  "deafened": false,
+  "videoEnabled": false
+}
+
+### 5. Update Voice State
+PATCH {{baseUrl}}/voice/channels/{{channelId}}/users/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muted": true,
+  "deafened": false,
+  "videoEnabled": true
+}
+
+### 6. Get Voice Channel Users
+GET {{baseUrl}}/voice/channels/{{channelId}}/users
+Authorization: Bearer {{accessToken}}
+
+### 7. Get Voice Channel Info
+GET {{baseUrl}}/voice/channels/{{channelId}}/info
+Authorization: Bearer {{accessToken}}
+
+### 8. Leave Voice Channel
+POST {{baseUrl}}/voice/channels/{{channelId}}/leave
+Authorization: Bearer {{accessToken}}
+
+### ============= VOICE MODERATION =============
+
+### 9. Mute User in Voice (Moderator)
+PATCH {{baseUrl}}/voice/channels/{{channelId}}/users/{{testUser2Id}}/mute
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muted": true,
+  "reason": "Testing voice moderation via Gateway API"
+}
+
+### 10. Deafen User in Voice (Moderator)
+PATCH {{baseUrl}}/voice/channels/{{channelId}}/users/{{testUser2Id}}/deafen
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "deafened": true,
+  "reason": "Testing voice moderation"
+}
+
+### 11. Move User to Different Voice Channel
+POST {{baseUrl}}/voice/users/{{testUser2Id}}/move
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "targetChannelId": "target-voice-channel-id",
+  "reason": "Moving user for testing"
+}
+
+### 12. Disconnect User from Voice
+POST {{baseUrl}}/voice/users/{{testUser2Id}}/disconnect
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "Testing disconnect functionality"
+}
+
+### ============= SCREEN SHARING =============
+
+### 13. Start Screen Share
+# @name startScreenShare
+POST {{baseUrl}}/voice/channels/{{channelId}}/screen-share/start
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "quality": "high",
+  "fps": 30,
+  "audioEnabled": true
+}
+
+### 14. Update Screen Share Settings
+PATCH {{baseUrl}}/voice/channels/{{channelId}}/screen-share
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "quality": "medium",
+  "fps": 15,
+  "audioEnabled": false
+}
+
+### 15. Get Screen Share Info
+GET {{baseUrl}}/voice/channels/{{channelId}}/screen-share
+Authorization: Bearer {{accessToken}}
+
+### 16. Stop Screen Share
+POST {{baseUrl}}/voice/channels/{{channelId}}/screen-share/stop
+Authorization: Bearer {{accessToken}}
+
+### ============= USER PRESENCE =============
+
+### 17. Update User Presence
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "customStatus": "Testing Gateway API",
+  "activity": {
+    "type": "playing",
+    "name": "Gateway API Testing",
+    "details": "Building microservices",
+    "state": "In Development",
+    "timestamps": {
+      "start": "2025-08-23T12:00:00Z"
+    }
+  }
+}
+
+### 18. Get User Presence
+GET {{baseUrl}}/presence/users/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+
+### 19. Get Server Presence
+GET {{baseUrl}}/presence/server/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### 20. Get Friends Presence
+GET {{baseUrl}}/presence/friends
+Authorization: Bearer {{accessToken}}
+
+### 21. Set User Status
+PATCH {{baseUrl}}/presence/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "busy",
+  "customStatus": "Do not disturb - Testing"
+}
+
+### ============= TYPING INDICATORS =============
+
+### 22. Start Typing Indicator
+POST {{baseUrl}}/typing/start
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "channelId": "{{channelId}}"
+}
+
+### 23. Stop Typing Indicator
+POST {{baseUrl}}/typing/stop
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "channelId": "{{channelId}}"
+}
+
+### 24. Get Typing Users
+GET {{baseUrl}}/typing/{{channelId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= NOTIFICATIONS =============
+
+### 25. Get User Notifications
+GET {{baseUrl}}/notifications?limit=20&unreadOnly=true
+Authorization: Bearer {{accessToken}}
+
+### 26. Get Notification by ID
+GET {{baseUrl}}/notifications/{{notificationId}}
+Authorization: Bearer {{accessToken}}
+
+### 27. Mark Notification as Read
+PATCH {{baseUrl}}/notifications/{{notificationId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "read": true
+}
+
+### 28. Mark All Notifications as Read
+POST {{baseUrl}}/notifications/mark-all-read
+Authorization: Bearer {{accessToken}}
+
+### 29. Delete Notification
+DELETE {{baseUrl}}/notifications/{{notificationId}}
+Authorization: Bearer {{accessToken}}
+
+### 30. Clear All Notifications
+DELETE {{baseUrl}}/notifications/clear-all
+Authorization: Bearer {{accessToken}}
+
+### ============= NOTIFICATION SETTINGS =============
+
+### 31. Get Notification Settings
+GET {{baseUrl}}/notifications/settings
+Authorization: Bearer {{accessToken}}
+
+### 32. Update Notification Settings
+POST {{baseUrl}}/notifications/settings
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "friendRequests": true,
+  "directMessages": true,
+  "serverMessages": false,
+  "mentions": true,
+  "reactions": false,
+  "emailNotifications": false,
+  "pushNotifications": true,
+  "desktopNotifications": true,
+  "soundEnabled": true,
+  "quietHours": {
+    "enabled": true,
+    "startTime": "22:00",
+    "endTime": "08:00"
+  }
+}
+
+### 33. Get Server Notification Settings
+GET {{baseUrl}}/notifications/settings/server/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### 34. Update Server Notification Settings
+PATCH {{baseUrl}}/notifications/settings/server/{{serverId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muteServer": false,
+  "mentionsOnly": true,
+  "muteChannels": ["channel-id-1", "channel-id-2"]
+}
+
+### ============= REAL-TIME EVENTS =============
+
+### 35. Send Custom Event
+POST {{baseUrl}}/events/send
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "eventType": "custom_test_event",
+  "targetType": "channel",
+  "targetId": "{{channelId}}",
+  "data": {
+    "message": "Custom event via Gateway API",
+    "timestamp": "2025-08-23T12:00:00Z"
+  }
+}
+
+### 36. Get Event History
+GET {{baseUrl}}/events/history?targetType=channel&targetId={{channelId}}&limit=20
+Authorization: Bearer {{accessToken}}
+
+### 37. Subscribe to Events
+POST {{baseUrl}}/events/subscribe
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "eventTypes": ["message_create", "user_join", "voice_state_update"],
+  "targets": [
+    {
+      "type": "channel",
+      "id": "{{channelId}}"
+    },
+    {
+      "type": "server",
+      "id": "{{serverId}}"
+    }
+  ]
+}
+
+### 38. Unsubscribe from Events
+POST {{baseUrl}}/events/unsubscribe
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "eventTypes": ["message_create"],
+  "targets": [
+    {
+      "type": "channel",
+      "id": "{{channelId}}"
+    }
+  ]
+}
+
+### ============= REAL-TIME ANALYTICS =============
+
+### 39. Get Voice Channel Analytics
+GET {{baseUrl}}/analytics/voice/{{channelId}}?period=day
+Authorization: Bearer {{accessToken}}
+
+### 40. Get User Activity Analytics
+GET {{baseUrl}}/analytics/user/{{testUserId}}/activity?period=week
+Authorization: Bearer {{accessToken}}
+
+### 41. Get Server Activity Analytics
+GET {{baseUrl}}/analytics/server/{{serverId}}/activity?period=month
+Authorization: Bearer {{accessToken}}
+
+### ============= ERROR TESTING =============
+
+### 42. Test Join Non-existent Voice Channel
+POST {{baseUrl}}/voice/channels/invalid-channel-id/join
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "muted": false,
+  "deafened": false
+}
+
+### 43. Test Rate Limiting - Presence Updates
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "online",
+  "activity": {
+    "type": "playing",
+    "name": "Rate limit test"
+  }
+}
+
+### 44. Test Invalid Notification ID
+GET {{baseUrl}}/notifications/invalid-notification-id
+Authorization: Bearer {{accessToken}}
+
+### ============= TESTING NOTES =============
+
+### 📝 Prerequisites:
+# 1. Must have valid accessToken from auth.http
+# 2. Need channelId (voice channel) from server-channel.http
+# 3. Need serverId for server-specific features
+# 4. Update @notificationId after receiving notifications
+
+### 🔒 Rate Limits:
+# - WebSocket connections: 10 requests/min
+# - Voice operations: 20 requests/min
+# - Presence updates: 100 requests/min
+# - Typing indicators: 200 requests/min
+# - Notifications: 50 requests/min
+
+### 🎯 Test Flow:
+# 1. Test WebSocket connection management
+# 2. Test voice channel operations
+# 3. Test screen sharing functionality
+# 4. Test presence and status updates
+# 5. Test typing indicators
+# 6. Test notification system
+
+### 📊 Expected Results:
+# - WebSocket connections establish successfully
+# - Voice state updates in real-time
+# - Screen sharing works with quality settings
+# - Presence updates across all clients
+# - Typing indicators appear/disappear
+# - Notifications deliver properly
+
+### ⚡ Real-time Features:
+# - WebSocket connections for instant updates
+# - Voice chat with quality controls
+# - Screen sharing with audio
+# - Live presence indicators
+# - Typing indicators for better UX
+# - Push notifications for mobile
+# - Custom event system for plugins
+
+### 🎮 Voice Features:
+# - High-quality voice chat
+# - Push-to-talk and voice activation
+# - Noise suppression and echo cancellation
+# - Voice moderation tools
+# - Screen sharing with audio
+# - Video calls (future feature)
+
+### 🔔 Notification System:
+# - Real-time push notifications
+# - Customizable notification settings
+# - Quiet hours for better UX
+# - Server-specific notification controls
+# - Email and mobile notifications
+# - Notification history and management

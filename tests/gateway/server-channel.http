@@ -1,0 +1,343 @@
+### 🏢 Server & Channel Service - Gateway API Tests
+### Routes through API Gateway to Server Service (Port 3003)
+
+### Shared Variables
+@baseUrl = http://localhost:3000/api
+@testEmail = demarco1@gmail.com
+@testUsername = demarco1
+@testPassword = demarco1
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzM3ZDkwMi02NDI4LTQ4MDItYWQyNS1jNjE5NjRhOTQzYWUiLCJpYXQiOjE3NTYwMDg3MDYsImV4cCI6MTc1NjAxMjMwNn0.rOwRcJZdTVBMV8rZr6VQGxPWzPmSA9GTr6C_NXLF8bA
+@refreshToken = f2297d080f5a3091e09643c7e7f26636aedacf8680ed029f6072c407f4c2145670f7f6f253a68b1868973c7a0274d6c6d48e4d3de1205395393f67f475145c28
+@testUserId = a337d902-6428-4802-ad25-c61964a943ae
+@serverId = a323b194-87b8-4f87-93bb-967e03b7bc98
+@channelId = paste-channel-id-here
+@roleId = paste-role-id-here
+@messageId = paste-message-id-here
+@fileId = paste-file-id-here
+@friendshipId = paste-friendship-id-here
+@notificationId = paste-notification-id-here
+@testUser2Id = paste-test-user-2-id-here
+@testUser3Id = paste-test-user-3-id-here
+@testImageUrl = https://example.com/test-image.jpg
+@testAvatarUrl = https://example.com/test-avatar.jpg
+
+### ============= SERVER MANAGEMENT =============
+
+### 1. Create Server
+# @name createServer
+POST {{baseUrl}}/servers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Gateway Test Server 2",
+  "description": "Server created via Gateway API for testing",
+  "isPublic": false
+}
+
+### 2. Get My Servers
+GET {{baseUrl}}/servers/my-servers
+Authorization: Bearer {{accessToken}}
+
+### 3. Get Server Details
+GET {{baseUrl}}/servers/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### 4. Update Server
+PATCH {{baseUrl}}/servers/{{serverId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "change",
+  "description": "Updated via Gateway API testing",
+  "isPublic": true
+}
+
+### 5. Generate Server Invite
+# @name generateInvite
+POST {{baseUrl}}/servers/{{serverId}}/invite
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "expiresIn": 7,
+  "maxUses": 10,
+  "temporary": false
+}
+
+### 6. Join Server via Invite
+POST {{baseUrl}}/servers/join
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "inviteCode": "paste-invite-code-here"
+}
+
+### 7. Get Server Members
+GET {{baseUrl}}/servers/{{serverId}}/members
+Authorization: Bearer {{accessToken}}
+
+### 8. Update Server Member
+PATCH {{baseUrl}}/servers/{{serverId}}/members/{{testUserId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nickname": "Gateway Tester",
+  "roleIds": ["{{roleId}}"]
+}
+
+### 9. Remove Server Member
+DELETE {{baseUrl}}/servers/{{serverId}}/members/member-id-to-remove
+Authorization: Bearer {{accessToken}}
+
+### ============= CHANNEL MANAGEMENT =============
+
+### 10. Create Text Channel
+# @name createTextChannel
+POST {{baseUrl}}/servers/{{serverId}}/channels
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "channel text 1",
+  "type": "text",
+  "topic": "Channel for testing Gateway API functionality",
+  "position": 1,
+  "isPrivate": false,
+  "isNsfw": false,
+  "slowmodeDelay": 0,
+  "parentId": null
+}
+
+### 11. Create Voice Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "channel voice 1",
+  "type": "voice",
+  "position": 2,
+  "isPrivate": false,
+  "userLimit": 10,
+  "bitrate": 64000,
+  "parentId": null
+}
+
+### 12. Create Category Channel
+POST {{baseUrl}}/servers/{{serverId}}/channels
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Gateway Category",
+  "type": "category",
+  "position": 0,
+  "isPrivate": false
+}
+
+### 13. Get Channel Details
+GET {{baseUrl}}/channels/{{channelId}}
+Authorization: Bearer {{accessToken}}
+
+### 14. Update Channel
+PATCH {{baseUrl}}/channels/{{channelId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "updated-gateway-testing",
+  "topic": "Updated channel via Gateway API",
+  "slowmodeDelay": 30,
+  "isNsfw": false
+}
+
+### 15. Get Channel Members
+GET {{baseUrl}}/channels/{{channelId}}/members
+Authorization: Bearer {{accessToken}}
+
+### 16. Add Member to Private Channel
+POST {{baseUrl}}/channels/{{channelId}}/members
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "targetUserId": "{{testUser2Id}}"
+}
+
+### 17. Remove Member from Channel
+DELETE {{baseUrl}}/channels/{{channelId}}/members/{{testUser2Id}}
+Authorization: Bearer {{accessToken}}
+
+### ============= ROLE MANAGEMENT =============
+
+### 18. Get Server Roles
+GET {{baseUrl}}/servers/{{serverId}}/roles
+Authorization: Bearer {{accessToken}}
+
+### 19. Create Role
+# @name createRole
+POST {{baseUrl}}/servers/{{serverId}}/roles
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Gateway Tester",
+  "color": "#00ff00",
+  "position": 50,
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE",
+    "SPEAK"
+  ],
+  "isHoisted": true,
+  "isMentionable": true
+}
+
+### 20. Update Role
+PATCH {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Senior Gateway Tester",
+  "color": "#ff0000",
+  "permissions": [
+    "MANAGE_CHANNELS",
+    "MANAGE_MEMBERS",
+    "VIEW_CHANNELS",
+    "SEND_MESSAGES",
+    "CONNECT_VOICE",
+    "SPEAK",
+    "MUTE_MEMBERS"
+  ],
+  "position": 60
+}
+
+### 21. Assign Role to Member
+POST {{baseUrl}}/servers/{{serverId}}/members/{{testUserId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### 22. Remove Role from Member
+DELETE {{baseUrl}}/servers/{{serverId}}/members/{{testUserId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= CHANNEL PERMISSIONS =============
+
+### 23. Set Channel Permissions for Role
+POST {{baseUrl}}/channels/{{channelId}}/permissions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "targetType": "role",
+  "targetId": "{{roleId}}",
+  "allow": ["VIEW_CHANNEL", "SEND_MESSAGES"],
+  "deny": ["MANAGE_MESSAGES"]
+}
+
+### 24. Set Channel Permissions for User
+POST {{baseUrl}}/channels/{{channelId}}/permissions
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "targetType": "user",
+  "targetId": "{{testUserId}}",
+  "allow": ["VIEW_CHANNEL", "SEND_MESSAGES", "MANAGE_MESSAGES"],
+  "deny": []
+}
+
+### 25. Get Channel Permissions
+GET {{baseUrl}}/channels/{{channelId}}/permissions
+Authorization: Bearer {{accessToken}}
+
+### ============= SERVER DISCOVERY =============
+
+### 26. Get Public Servers
+GET {{baseUrl}}/servers/discover?limit=20&category=gaming
+Authorization: Bearer {{accessToken}}
+
+### 27. Search Servers
+GET {{baseUrl}}/servers/search?q=gateway&limit=10
+Authorization: Bearer {{accessToken}}
+
+### ============= CLEANUP OPERATIONS =============
+
+### 28. Delete Channel
+DELETE {{baseUrl}}/channels/{{channelId}}
+Authorization: Bearer {{accessToken}}
+
+### 29. Delete Role
+DELETE {{baseUrl}}/servers/{{serverId}}/roles/{{roleId}}
+Authorization: Bearer {{accessToken}}
+
+### 30. Leave Server
+POST {{baseUrl}}/servers/{{serverId}}/leave
+Authorization: Bearer {{accessToken}}
+
+### 31. Delete Server (Owner only)
+DELETE {{baseUrl}}/servers/{{serverId}}
+Authorization: Bearer {{accessToken}}
+
+### ============= ERROR TESTING =============
+
+### 32. Test Access to Private Server (Should fail)
+GET {{baseUrl}}/servers/non-accessible-server-id
+Authorization: Bearer {{accessToken}}
+
+### 33. Test Invalid Server ID
+GET {{baseUrl}}/servers/invalid-server-id
+Authorization: Bearer {{accessToken}}
+
+### 34. Test Rate Limiting - Server Creation
+POST {{baseUrl}}/servers
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Rate Limit Test Server",
+  "description": "Testing rate limits",
+  "ownerId": "{{testUserId}}"
+}
+
+### ============= TESTING NOTES =============
+
+### 📝 Prerequisites:
+# 1. Must have valid accessToken from auth.http
+# 2. Update @serverId after creating server (test #1)
+# 3. Update @channelId after creating channel (test #10)
+# 4. Update @roleId after creating role (test #19)
+
+### 🔒 Rate Limits:
+# - Server Creation: 3 requests/hour
+# - Channel Creation: 10 requests/min
+# - Role Creation: 5 requests/min
+# - Member Management: 20 requests/min
+# - General Server API: 50 requests/min
+
+### 🎯 Test Flow:
+# 1. Create server → Copy serverId
+# 2. Create channels → Copy channelId
+# 3. Create roles → Copy roleId
+# 4. Test member management
+# 5. Test permissions
+# 6. Test cleanup operations
+
+### 📊 Expected Results:
+# - Server owner has full permissions
+# - Role permissions cascade to members
+# - Channel permissions override server permissions
+# - Private channels restrict access
+# - Rate limiting prevents abuse
+
+### 🏗️ Architecture Notes:
+# - Server Service handles servers, channels, roles
+# - Permissions are hierarchical: Server → Channel → User
+# - Roles can be assigned to multiple users
+# - Channels can have category parents
