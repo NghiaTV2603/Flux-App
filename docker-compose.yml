@@ -177,7 +177,7 @@ services:
       retries: 3
       start_period: 60s
 
-  # Message Service
+  # Message Service (MongoDB-based)
   message-service:
     build:
       context: ./services/message-service
@@ -187,14 +187,21 @@ services:
       - "3005:3005"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://flux_user:flux_password@postgres:5432/flux_message_db
+      - DATABASE_URL=mongodb://flux_user:flux_password@mongodb:27017/flux_message_db
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://flux_user:flux_password@rabbitmq:5672
       - PORT=3005
       - USER_SERVICE_URL=http://user-service:3002
       - SERVER_SERVICE_URL=http://server-service:3003
+      - REALTIME_SERVICE_URL=http://realtime-service:3006
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - ENABLE_SEARCH=true
+      - ENABLE_ANALYTICS=true
+      - MAX_MESSAGE_LENGTH=2000
+      - MAX_ATTACHMENTS=10
+      - CORS_ORIGIN=http://localhost:3000
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
