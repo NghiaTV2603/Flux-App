@@ -18,7 +18,6 @@ import { QueryMessagesDto } from '../dto/query-messages.dto';
 import { AddReactionDto } from '../dto/add-reaction.dto';
 import { UserInfo } from '../types/user.types';
 
-// Mock auth guard - replace with actual JWT guard
 @Controller()
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}

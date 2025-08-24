@@ -2,7 +2,24 @@
 ### Routes through API Gateway to User Service (Port 3002)
 
 ### Import shared variables
-< _shared-vars.http
+@baseUrl = http://localhost:3000/api
+@testEmail = demarco1@gmail.com
+@testUsername = demarco1
+@testPassword = demarco1
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzM3ZDkwMi02NDI4LTQ4MDItYWQyNS1jNjE5NjRhOTQzYWUiLCJpYXQiOjE3NTYwMDg3MDYsImV4cCI6MTc1NjAxMjMwNn0.rOwRcJZdTVBMV8rZr6VQGxPWzPmSA9GTr6C_NXLF8bA
+@refreshToken = f2297d080f5a3091e09643c7e7f26636aedacf8680ed029f6072c407f4c2145670f7f6f253a68b1868973c7a0274d6c6d48e4d3de1205395393f67f475145c28
+@testUserId = a337d902-6428-4802-ad25-c61964a943ae
+@serverId = a323b194-87b8-4f87-93bb-967e03b7bc98
+@channelId = paste-channel-id-here
+@roleId = paste-role-id-here
+@messageId = paste-message-id-here
+@fileId = paste-file-id-here
+@friendshipId = paste-friendship-id-here
+@notificationId = paste-notification-id-here
+@testUser2Id = paste-test-user-2-id-here
+@testUser3Id = paste-test-user-3-id-here
+@testImageUrl = https://example.com/test-image.jpg
+@testAvatarUrl = https://example.com/test-avatar.jpg
 
 ### ============= USER PROFILE MANAGEMENT =============
 

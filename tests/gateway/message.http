@@ -2,8 +2,24 @@
 ### Routes through API Gateway to Message Service (Port 3005)
 
 ### Import shared variables
-< _shared-vars.http
-
+@baseUrl = http://localhost:3000/api
+@testEmail = demarco1@gmail.com
+@testUsername = demarco1
+@testPassword = demarco1
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzM3ZDkwMi02NDI4LTQ4MDItYWQyNS1jNjE5NjRhOTQzYWUiLCJpYXQiOjE3NTYwMDg3MDYsImV4cCI6MTc1NjAxMjMwNn0.rOwRcJZdTVBMV8rZr6VQGxPWzPmSA9GTr6C_NXLF8bA
+@refreshToken = f2297d080f5a3091e09643c7e7f26636aedacf8680ed029f6072c407f4c2145670f7f6f253a68b1868973c7a0274d6c6d48e4d3de1205395393f67f475145c28
+@testUserId = a337d902-6428-4802-ad25-c61964a943ae
+@serverId = a323b194-87b8-4f87-93bb-967e03b7bc98
+@channelId = paste-channel-id-here
+@roleId = paste-role-id-here
+@messageId = paste-message-id-here
+@fileId = paste-file-id-here
+@friendshipId = paste-friendship-id-here
+@notificationId = paste-notification-id-here
+@testUser2Id = paste-test-user-2-id-here
+@testUser3Id = paste-test-user-3-id-here
+@testImageUrl = https://example.com/test-image.jpg
+@testAvatarUrl = https://example.com/test-avatar.jpg
 ### ============= CHANNEL MESSAGING =============
 
 ### 1. Send Message to Channel
@@ -14,7 +30,7 @@ Content-Type: application/json
 
 {
   "content": "Hello from Gateway API! 🚀 Testing channel messages",
-  "type": "text"
+  "contentType": "text"
 }
 
 ### 2. Send Message with Embed
@@ -24,20 +40,17 @@ Content-Type: application/json
 
 {
   "content": "Check out this embed!",
-  "type": "text",
+  "contentType": "embed",
   "embeds": [
     {
+      "type": "rich",
       "title": "Gateway API Test",
       "description": "Testing embed functionality",
-      "color": 3447003,
       "url": "https://example.com",
-      "fields": [
-        {
-          "name": "Status",
-          "value": "Testing",
-          "inline": true
-        }
-      ]
+      "fields": {
+        "status": "Testing",
+        "priority": "High"
+      }
     }
   ]
 }
@@ -49,248 +62,270 @@ Content-Type: application/json
 
 {
   "content": "Message with file attachment",
-  "type": "text",
+  "contentType": "file",
   "attachments": [
     {
-      "filename": "test-image.jpg",
+      "id": "attachment-1",
+      "name": "test-image.jpg",
       "url": "{{testImageUrl}}",
       "size": 12345,
-      "contentType": "image/jpeg"
+      "type": "image/jpeg",
+      "thumbnail": "{{testImageThumbnailUrl}}"
     }
   ]
 }
 
-### 4. Get Channel Messages
-GET {{baseUrl}}/channels/{{channelId}}/messages?limit=20&before={{messageId}}
-Authorization: Bearer {{accessToken}}
-
-### 5. Get Channel Messages (After specific message)
-GET {{baseUrl}}/channels/{{channelId}}/messages?limit=10&after={{messageId}}
-Authorization: Bearer {{accessToken}}
-
-### 6. Get Channel Messages (Around specific message)
-GET {{baseUrl}}/channels/{{channelId}}/messages?limit=10&around={{messageId}}
-Authorization: Bearer {{accessToken}}
-
-### 7. Get Specific Message
-GET {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}
-Authorization: Bearer {{accessToken}}
-
-### 8. Update Message
-PATCH {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}
+### 4. Send Message with Mentions
+POST {{baseUrl}}/channels/{{channelId}}/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "content": "Updated message via Gateway API! ✨ Edit test successful"
+  "content": "Hey @testuser, check this out!",
+  "contentType": "text",
+  "mentions": [
+    {
+      "type": "user",
+      "id": "{{testUserId}}",
+      "username": "testuser"
+    }
+  ]
+}
+
+### 5. Get Channel Messages
+GET {{baseUrl}}/channels/{{channelId}}/messages?limit=20&before={{messageId}}
+Authorization: Bearer {{accessToken}}
+
+### 6. Get Channel Messages (After specific message)
+GET {{baseUrl}}/channels/{{channelId}}/messages?limit=10&after={{messageId}}
+Authorization: Bearer {{accessToken}}
+
+### 7. Get Channel Messages with Filters
+GET {{baseUrl}}/channels/{{channelId}}/messages?limit=10&authorId={{testUserId}}&contentType=text&hasAttachments=true
+Authorization: Bearer {{accessToken}}
+
+### 8. Update Message
+PUT {{baseUrl}}/messages/{{messageId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Updated message via Gateway API! ✨ Edit test successful",
+  "reason": "Fixed typo"
 }
 
 ### 9. Delete Message
-DELETE {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}
+DELETE {{baseUrl}}/messages/{{messageId}}
 Authorization: Bearer {{accessToken}}
 
 ### ============= MESSAGE REACTIONS =============
 
 ### 10. Add Reaction to Message
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions
+POST {{baseUrl}}/messages/{{messageId}}/reactions
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "emoji": "👍",
-  "userId": "{{testUserId}}"
+  "emoji": "👍"
 }
 
 ### 11. Add Custom Emoji Reaction
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions
+POST {{baseUrl}}/messages/{{messageId}}/reactions
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "emoji": "custom_emoji:12345",
-  "userId": "{{testUserId}}"
+  "emoji": "custom_emoji",
+  "emojiId": "12345",
+  "animated": true
 }
 
-### 12. Get Message Reactions
-GET {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions
+### 12. Remove Reaction
+DELETE {{baseUrl}}/messages/{{messageId}}/reactions/👍
 Authorization: Bearer {{accessToken}}
 
-### 13. Get Users who Reacted with Specific Emoji
-GET {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions/👍
-Authorization: Bearer {{accessToken}}
-
-### 14. Remove Own Reaction
-DELETE {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions/👍/{{testUserId}}
-Authorization: Bearer {{accessToken}}
-
-### 15. Remove User Reaction (Moderator)
-DELETE {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/reactions/👍/{{testUser2Id}}
+### 13. Remove Custom Emoji Reaction
+DELETE {{baseUrl}}/messages/{{messageId}}/reactions/custom_emoji
 Authorization: Bearer {{accessToken}}
 
 ### ============= DIRECT MESSAGING =============
 
-### 16. Send Direct Message
+### 14. Send Direct Message
 # @name sendDM
-POST {{baseUrl}}/dm/send
+POST {{baseUrl}}/conversations/{{conversationId}}/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "recipientId": "{{testUser2Id}}",
-  "content": "Direct message via Gateway API! 💬 Testing DM functionality"
+  "content": "Direct message via Gateway API! 💬 Testing DM functionality",
+  "contentType": "text",
+  "participants": ["{{testUserId}}", "{{testUser2Id}}"]
 }
 
-### 17. Send DM with Attachments
-POST {{baseUrl}}/dm/send
+### 15. Send DM with Attachments
+POST {{baseUrl}}/conversations/{{conversationId}}/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "recipientId": "{{testUser2Id}}",
   "content": "DM with image attachment",
+  "contentType": "file",
+  "participants": ["{{testUserId}}", "{{testUser2Id}}"],
   "attachments": [
     {
-      "filename": "dm-image.jpg",
+      "id": "dm-attachment-1",
+      "name": "dm-image.jpg",
       "url": "{{testImageUrl}}",
       "size": 54321,
-      "contentType": "image/jpeg"
+      "type": "image/jpeg"
     }
   ]
 }
 
-### 18. Get DM Conversation
-GET {{baseUrl}}/dm/conversation/{{testUser2Id}}?limit=20
+### 16. Get DM Conversation
+GET {{baseUrl}}/conversations/{{conversationId}}/messages?limit=20
 Authorization: Bearer {{accessToken}}
 
-### 19. Get DM Conversation History
-GET {{baseUrl}}/dm/conversation/{{testUser2Id}}?limit=10&before={{messageId}}
-Authorization: Bearer {{accessToken}}
-
-### 20. Get All DM Conversations
-GET {{baseUrl}}/dm/conversations?limit=20
-Authorization: Bearer {{accessToken}}
-
-### ============= MESSAGE THREADS =============
-
-### 21. Create Message Thread
-# @name createThread
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/threads
-Authorization: Bearer {{accessToken}}
-Content-Type: application/json
-
-{
-  "name": "Gateway Discussion Thread",
-  "autoArchiveDuration": 60
-}
-
-### 22. Send Message to Thread
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/threads/messages
-Authorization: Bearer {{accessToken}}
-Content-Type: application/json
-
-{
-  "content": "Reply in thread via Gateway API! 🧵"
-}
-
-### 23. Get Thread Messages
-GET {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/threads/messages?limit=20
-Authorization: Bearer {{accessToken}}
-
-### 24. Join Thread
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/threads/join
-Authorization: Bearer {{accessToken}}
-
-### 25. Leave Thread
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/threads/leave
+### 17. Get DM Conversation History
+GET {{baseUrl}}/conversations/{{conversationId}}/messages?limit=10&before={{messageId}}
 Authorization: Bearer {{accessToken}}
 
 ### ============= MESSAGE SEARCH =============
 
-### 26. Search Messages in Channel
-GET {{baseUrl}}/messages/search?query=gateway&channelId={{channelId}}&limit=10
+### 18. Search Messages in Channel
+GET {{baseUrl}}/channels/{{channelId}}/search?search=gateway&limit=10
 Authorization: Bearer {{accessToken}}
 
-### 27. Search Messages in Server
-GET {{baseUrl}}/messages/search?query=test&serverId={{serverId}}&limit=20
+### 19. Search Messages in Conversation
+GET {{baseUrl}}/conversations/{{conversationId}}/search?search=test&limit=20
 Authorization: Bearer {{accessToken}}
 
-### 28. Search Messages by User
-GET {{baseUrl}}/messages/search?query=hello&authorId={{testUserId}}&limit=15
+### 20. Search with Content Type Filter
+GET {{baseUrl}}/channels/{{channelId}}/search?search=hello&contentType=text&limit=15
 Authorization: Bearer {{accessToken}}
 
-### 29. Search Messages with Date Range
-GET {{baseUrl}}/messages/search?query=api&after=2025-08-20&before=2025-08-25&limit=10
+### 21. Search with Author Filter
+GET {{baseUrl}}/channels/{{channelId}}/search?search=api&authorId={{testUserId}}&limit=10
 Authorization: Bearer {{accessToken}}
 
-### 30. Advanced Message Search
-GET {{baseUrl}}/messages/search?query=gateway&hasAttachments=true&messageType=text&sortBy=timestamp&sortOrder=desc&limit=10
+### 22. Search with Attachment Filter
+GET {{baseUrl}}/channels/{{channelId}}/search?search=image&hasAttachments=true&limit=10
 Authorization: Bearer {{accessToken}}
 
-### ============= MESSAGE MODERATION =============
+### ============= REPLY & THREADING =============
 
-### 31. Pin Message
-POST {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/pin
-Authorization: Bearer {{accessToken}}
-
-### 32. Get Pinned Messages
-GET {{baseUrl}}/channels/{{channelId}}/pins
-Authorization: Bearer {{accessToken}}
-
-### 33. Unpin Message
-DELETE {{baseUrl}}/channels/{{channelId}}/messages/{{messageId}}/pin
-Authorization: Bearer {{accessToken}}
-
-### 34. Bulk Delete Messages (Moderator)
-POST {{baseUrl}}/channels/{{channelId}}/messages/bulk-delete
+### 23. Reply to Message
+POST {{baseUrl}}/channels/{{channelId}}/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "messageIds": ["message-id-1", "message-id-2", "message-id-3"],
-  "reason": "Spam cleanup via Gateway API"
+  "content": "This is a reply to the previous message",
+  "contentType": "text",
+  "replyTo": "{{messageId}}"
 }
 
-### ============= MESSAGE NOTIFICATIONS =============
-
-### 35. Mark Channel as Read
-POST {{baseUrl}}/channels/{{channelId}}/read
+### 24. Send Message to Thread
+POST {{baseUrl}}/channels/{{channelId}}/messages
 Authorization: Bearer {{accessToken}}
+Content-Type: application/json
 
-### 36. Get Unread Message Count
-GET {{baseUrl}}/channels/{{channelId}}/unread-count
-Authorization: Bearer {{accessToken}}
+{
+  "content": "Message in thread via Gateway API! 🧵",
+  "contentType": "text",
+  "threadId": "{{threadId}}"
+}
 
-### 37. Get Mention Count
-GET {{baseUrl}}/users/{{testUserId}}/mentions?limit=20
+### ============= SPECIAL MESSAGE TYPES =============
+
+### 25. Send TTS Message
+POST {{baseUrl}}/channels/{{channelId}}/messages
 Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "This is a text-to-speech message",
+  "contentType": "text",
+  "isTts": true
+}
+
+### 26. Send Silent Message
+POST {{baseUrl}}/channels/{{channelId}}/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Silent message - no notification",
+  "contentType": "text",
+  "silent": true
+}
+
+### 27. Send Sticker Message
+POST {{baseUrl}}/channels/{{channelId}}/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "",
+  "contentType": "sticker",
+  "stickers": ["sticker-id-1", "sticker-id-2"]
+}
 
 ### ============= ERROR TESTING =============
 
-### 38. Test Send Message to Invalid Channel
+### 28. Test Send Message to Invalid Channel
 POST {{baseUrl}}/channels/invalid-channel-id/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "content": "This should fail"
+  "content": "This should fail",
+  "contentType": "text"
 }
 
-### 39. Test Rate Limiting - Message Spam
+### 29. Test Message Too Long
 POST {{baseUrl}}/channels/{{channelId}}/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "content": "Rate limit test message"
+  "content": "a".repeat(2001),
+  "contentType": "text"
 }
 
-### 40. Test Message Too Long
+### 30. Test Invalid Content Type
 POST {{baseUrl}}/channels/{{channelId}}/messages
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "content": "a".repeat(2001)
+  "content": "Test message",
+  "contentType": "invalid_type"
+}
+
+### 31. Test Missing Content
+POST {{baseUrl}}/channels/{{channelId}}/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "contentType": "text"
+}
+
+### 32. Test Invalid Mention
+POST {{baseUrl}}/channels/{{channelId}}/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Invalid mention test",
+  "contentType": "text",
+  "mentions": [
+    {
+      "type": "invalid_type",
+      "id": "invalid-id"
+    }
+  ]
 }
 
 ### ============= TESTING NOTES =============
@@ -298,37 +333,46 @@ Content-Type: application/json
 ### 📝 Prerequisites:
 # 1. Must have valid accessToken from auth.http
 # 2. Need channelId from server-channel.http
-# 3. Need testUser2Id for DM testing
+# 3. Need conversationId for DM testing
 # 4. Update @messageId after sending messages
+# 5. Update @threadId when testing threading
 
-### 🔒 Rate Limits:
-# - Send Messages: 30 requests/min
-# - Message Reactions: 50 requests/min
-# - Message Search: 20 requests/min
-# - DM Send: 30 requests/min
-# - Thread Operations: 20 requests/min
+### 🔧 API Endpoints Available:
+# ✅ POST /channels/:channelId/messages - Send channel message
+# ✅ GET /channels/:channelId/messages - Get channel messages
+# ✅ POST /conversations/:conversationId/messages - Send DM
+# ✅ GET /conversations/:conversationId/messages - Get DM messages
+# ✅ PUT /messages/:messageId - Update message
+# ✅ DELETE /messages/:messageId - Delete message
+# ✅ POST /messages/:messageId/reactions - Add reaction
+# ✅ DELETE /messages/:messageId/reactions/:emoji - Remove reaction
+# ✅ GET /channels/:channelId/search - Search channel messages
+# ✅ GET /conversations/:conversationId/search - Search DM messages
 
-### 🎯 Test Flow:
-# 1. Send various types of channel messages
-# 2. Test message reactions and interactions
-# 3. Test direct messaging
-# 4. Test message threads
-# 5. Test search functionality
-# 6. Test moderation features
+### ❌ API Endpoints NOT Yet Implemented:
+# - GET /messages/:messageId - Get single message
+# - POST/DELETE /messages/:messageId/pin - Pin/unpin messages
+# - Thread-specific endpoints
+# - Bulk message operations
+# - Message read status endpoints
+# - Advanced search endpoints
 
-### 📊 Expected Results:
-# - Messages appear in channel/DM
-# - Reactions are added/removed correctly
-# - Search returns relevant results
-# - Threads organize conversations
-# - Rate limiting prevents spam
-# - Moderation actions work properly
+### 🎯 Message Fields Available:
+# - content (required, max 2000 chars)
+# - contentType (text, embed, system, call, file, sticker, poll)
+# - attachments (array of file objects)
+# - embeds (array of embed objects)
+# - stickers (array of sticker IDs)
+# - mentions (array of mention objects)
+# - replyTo (message ID for replies)
+# - threadId (thread ID for threaded messages)
+# - isTts (boolean for text-to-speech)
+# - silent (boolean for silent messages)
 
-### 💡 Message Features:
-# - Text messages with formatting
-# - Embeds for rich content
-# - File attachments
-# - Reactions (emoji + custom)
-# - Threads for organized discussion
-# - Search across all content
-# - Pinned messages for important info
+### 🚨 Important Notes:
+# - Message Service runs on port 3005
+# - All requests should go through Gateway API
+# - Authentication required for all endpoints
+# - messageType is automatically set by endpoint
+# - channelId/conversationId is extracted from URL
+# - User info is extracted from JWT token

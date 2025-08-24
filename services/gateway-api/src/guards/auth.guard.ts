@@ -46,8 +46,6 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('Session expired');
       }
 
-      console.log('------ check payload', payload);
-
       // Attach user info to request - map JWT sub to id for consistency
       request['user'] = {
         id: payload.sub,
