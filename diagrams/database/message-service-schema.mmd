@@ -1,127 +1,400 @@
 erDiagram
-    %% MESSAGE SERVICE (merged Channel Messages + Direct Messages)
+    %% MESSAGE SERVICE - MongoDB NoSQL Schema Design
+    %% Optimized for Discord-like real-time messaging with sharding and performance
+    
     MESSAGES {
         objectid _id PK "MongoDB ObjectId"
-        uuid message_id UK "UUID for referential integrity"
-        enum message_type "channel|direct|system"
-        uuid channel_id FK "References channels.id (null for DMs)"
+        uuid message_id UK "UUID for cross-service references"
+        enum message_type "channel|direct|system|voice_call|screen_share"
+        
+        %% Channel Messages Fields
+        uuid channel_id "Channel ID (null for DMs)"
         uuid server_id "Server ID (null for DMs)"
-        uuid conversation_id "Generated ID for DM conversations"
-        json participants "DM participants array (sorted)"
-        uuid author_id FK "References user_profiles.user_id"
-        varchar author_username "Denormalized for performance"
-        text content "Message content"
-        enum content_type "text|embed|system|call|file"
-        json attachments "File attachments array"
-        json embeds "Rich embeds array"
-        json mentions "Users, roles, channels mentioned"
-        json reactions "Emoji reactions with counts and users"
-        uuid reply_to "Reply to message_id"
-        uuid thread_id "Thread root message_id"
-        boolean is_edited "Edit status"
-        json edit_history "Edit history with timestamps"
+        
+        %% Direct Messages Fields  
+        uuid conversation_id "Generated stable ID for DM conversations"
+        array participants "DM participants [userId1, userId2] (sorted for consistency)"
+        
+        %% Author Information (denormalized for performance)
+        uuid author_id "Message author user ID"
+        varchar author_username "Cached username at time of message"
+        varchar author_display_name "Cached display name"
+        text author_avatar_url "Cached avatar URL"
+        
+        %% Message Content
+        text content "Message text content"
+        enum content_type "text|embed|system|call|file|sticker|poll"
+        
+        %% Rich Content (embedded documents)
+        array attachments "[{id, name, url, size, type, thumbnail}]"
+        array embeds "[{type, title, description, url, thumbnail, fields}]"
+        array stickers "[{id, name, format_type, url}]"
+        object poll "{question, options: [{text, votes: [userId]}], expires_at}"
+        
+        %% Social Features
+        array mentions "[{type: user|role|everyone, id, username}]"
+        object reactions "{emoji: {count, users: [userId], emoji_id, animated}}"
+        
+        %% Threading & Replies
+        uuid reply_to "Parent message ID for replies"
+        uuid thread_id "Thread root message ID"
+        boolean is_thread_starter "True if this message starts a thread"
+        
+        %% Message State
+        boolean is_edited "Has been edited"
+        array edit_history "[{content, edited_at, reason}]"
         boolean is_deleted "Soft delete flag"
-        boolean is_pinned "Pinned message in channel"
-        json flags "Message flags (crosspost, urgent, etc)"
-        timestamp deleted_at
-        timestamp created_at
-        timestamp updated_at
-        varchar shard_key "Sharding key"
+        timestamp deleted_at "Deletion timestamp"
+        uuid deleted_by "User who deleted (for audit)"
+        
+        %% Special Flags
+        boolean is_pinned "Pinned in channel"
+        uuid pinned_by "User who pinned"
+        timestamp pinned_at "Pin timestamp"
+        boolean is_system "System generated message"
+        boolean is_tts "Text-to-speech message"
+        object flags "{urgent, crosspost, ephemeral, silent}"
+        
+        %% Voice/Video Call Data (for call messages)
+        object call_data "{type: voice|video, duration, participants: [userId], ended_timestamp}"
+        
+        %% Timestamps
+        timestamp created_at "Message creation time"
+        timestamp updated_at "Last modification time"
+        
+        %% Sharding & Performance
+        varchar shard_key "Sharding key: channel_id || conversation_id"
+        integer message_number "Sequential number per channel/conversation for ordering"
     }
     
     MESSAGE_READ_STATES {
         objectid _id PK "MongoDB ObjectId"
-        uuid message_id FK "References messages.message_id"
-        uuid user_id FK "User who read the message"
-        uuid channel_id "Channel ID (null for DMs)"
-        uuid conversation_id "Conversation ID for DMs"
-        timestamp read_at "When message was read"
-        boolean is_mentioned "User was mentioned in message"
+        uuid user_id "User who read messages"
+        
+        %% Channel Read States (embedded document per channel)
+        object channel_reads "{channelId: {last_message_id, last_read_at, mention_count, unread_count}}"
+        
+        %% DM Read States (embedded document per conversation)  
+        object conversation_reads "{conversationId: {last_message_id, last_read_at, unread_count}}"
+        
+        %% Individual Message Read Receipts (for important messages only)
+        array message_receipts "[{message_id, read_at, is_mentioned}]"
+        
+        timestamp updated_at "Last read state update"
+        varchar shard_key "user_id for user-based sharding"
     }
     
     MESSAGE_THREADS {
-        objectid _id PK
+        objectid _id PK "MongoDB ObjectId"
         uuid thread_id UK "Thread root message ID"
-        uuid channel_id FK "Parent channel"
-        uuid server_id "Parent server"
-        uuid starter_id FK "Thread starter user ID"
-        varchar title "Thread title"
-        integer message_count "Count of messages in thread"
-        integer member_count "Users who participated"
-        timestamp last_message_at
-        boolean is_archived
-        boolean is_locked "Locked by moderator"
-        json tags "Thread tags/labels"
-        timestamp created_at
-        timestamp updated_at
+        uuid channel_id "Parent channel ID"
+        uuid server_id "Parent server ID"
+        
+        %% Thread Metadata
+        varchar title "Thread title (optional)"
+        text description "Thread description"
+        array tags "[{name, color}]"
+        
+        %% Thread State
+        enum status "active|archived|locked|deleted"
+        boolean is_pinned "Pinned thread in channel"
+        boolean auto_archive "Auto-archive when inactive"
+        integer auto_archive_duration "Minutes before auto-archive"
+        
+        %% Participants & Activity
+        uuid starter_id "Thread creator user ID"
+        array participants "[{user_id, username, joined_at, last_read_at}]"
+        integer message_count "Total messages in thread"
+        integer member_count "Active participants count"
+        
+        %% Thread Settings
+        boolean slow_mode "Slow mode enabled"
+        integer slow_mode_delay "Seconds between messages"
+        boolean requires_invitation "Private thread"
+        
+        %% Timestamps
+        timestamp created_at "Thread creation"
+        timestamp updated_at "Last thread update"
+        timestamp last_message_at "Last message timestamp"
+        timestamp archived_at "When archived"
+        uuid archived_by "User who archived"
+        
+        varchar shard_key "channel_id for channel-based sharding"
+    }
+    
+    %% Real-time Collections (TTL enabled)
+    TYPING_INDICATORS {
+        objectid _id PK "MongoDB ObjectId"
+        
+        %% Location Context
+        uuid channel_id "Channel where typing (null for DMs)"
+        uuid conversation_id "DM conversation ID (null for channels)"
+        uuid thread_id "Thread ID (if typing in thread)"
+        
+        %% User Information (denormalized)
+        uuid user_id "User who is typing"
+        varchar username "Cached username"
+        text avatar_url "Cached avatar URL"
+        
+        %% Typing State
+        enum typing_type "text|upload|voice_message"
+        timestamp started_at "When typing started"
+        timestamp expires_at "Auto-expire timestamp"
+        
+        %% TTL for auto-cleanup
+        integer ttl_seconds "TTL: 10 seconds default"
+    }
+    
+    %% User Presence in Channels (TTL Collection)
+    CHANNEL_PRESENCE {
+        objectid _id PK "MongoDB ObjectId"
+        uuid channel_id "Channel ID"
+        uuid user_id "Present user ID"
+        
+        %% Presence Information  
+        varchar username "Cached username"
+        text avatar_url "Cached avatar URL"
+        enum status "online|away|busy|offline"
+        
+        %% Activity Tracking
+        timestamp joined_at "When user joined channel"
+        timestamp last_activity "Last activity in channel"
+        timestamp heartbeat "Last presence heartbeat"
+        
+        %% TTL for inactive users
+        integer ttl_seconds "TTL: 300 seconds (5 minutes)"
+    }
+    
+    %% Read Models & Search Integration
+    MESSAGE_SEARCH_INDEX {
+        uuid message_id PK "Message UUID for cross-reference"
+        
+        %% Context Information
+        uuid channel_id "Channel ID (null for DMs)"
+        uuid server_id "Server ID (null for DMs)"
+        uuid conversation_id "DM conversation ID"
+        
+        %% Author Information (denormalized)
+        uuid author_id "Message author"
+        varchar author_username "Searchable username"
+        varchar author_display_name "Searchable display name"
+        
+        %% Searchable Content
+        text content "Full-text searchable message content"
+        enum content_type "text|embed|system|call|file|sticker|poll"
+        array attachments "[{name, type, searchable_text}]"
+        array mentions "[{type, username, id}]"
+        array embeds_text "Extracted text from embeds for search"
+        
+        %% Search Metadata
+        array tags "Extracted hashtags and keywords"
+        varchar language "Detected language for search optimization"
+        
+        %% Filtering Fields
+        boolean is_deleted "Exclude from search results"
+        boolean is_system "System message filter"
+        boolean has_attachments "Messages with files filter"
+        boolean has_mentions "Messages with mentions filter"
+        timestamp created_at "Date range filtering"
+        
+        %% Search Analytics
+        integer search_count "How often this message appears in search"
+        timestamp last_searched "Last time this message was found"
+    }
+    
+    %% Analytics & Metrics (for ClickHouse or separate analytics service)
+    MESSAGE_ANALYTICS {
+        uuid message_id "Message identifier"
+        
+        %% Context Dimensions
+        uuid channel_id "Channel analytics dimension"
+        uuid server_id "Server analytics dimension"  
+        uuid author_id "Author analytics dimension"
+        
+        %% Message Metrics
+        enum message_type "text|media|embed|system|call|sticker|poll"
+        enum content_type "Granular content classification"
+        integer content_length "Character count"
+        integer word_count "Word count for analysis"
+        integer attachment_count "Number of attachments"
+        integer embed_count "Number of embeds"
+        integer mention_count "Number of mentions"
+        integer reaction_count "Total reactions received"
+        integer reply_count "Number of replies to this message"
+        
+        %% Engagement Metrics
+        array reaction_types "[{emoji, count}]"
+        integer thread_messages "Messages spawned in thread"
+        boolean is_viral "High engagement indicator"
+        
+        %% Time Buckets for Aggregation
+        timestamp created_at "Original timestamp"
+        varchar minute_bucket "YYYY-MM-DD HH:MM"
+        varchar hour_bucket "YYYY-MM-DD HH"
+        varchar day_bucket "YYYY-MM-DD"
+        varchar week_bucket "YYYY-WW"
+        varchar month_bucket "YYYY-MM"
+        
+        %% Performance Metrics
+        integer process_duration_ms "Message processing time"
+        integer delivery_latency_ms "Real-time delivery latency"
+    }
+    
+    %% Message Cache (Redis-like for hot data)
+    MESSAGE_CACHE {
+        varchar cache_key "channel:{channelId}:recent or dm:{conversationId}:recent"
+        array recent_messages "[{message_id, content, author, created_at, reactions}]"
+        integer max_messages "50 recent messages cached"
+        timestamp cache_updated "Last cache refresh"
+        integer ttl_seconds "Cache TTL: 3600 seconds (1 hour)"
+    }
+    
+    %% Collection Relationships (NoSQL - Conceptual)
+    MESSAGES ||--o{ MESSAGE_READ_STATES : "tracks_reading"
+    MESSAGES ||--o{ MESSAGE_THREADS : "can_spawn_thread"
+    MESSAGES ||--|| MESSAGE_SEARCH_INDEX : "indexed_for_search"
+    MESSAGES ||--|| MESSAGE_ANALYTICS : "tracked_for_analytics"
+    MESSAGES ||--|| MESSAGE_CACHE : "cached_for_performance"
+    MESSAGE_THREADS ||--o{ TYPING_INDICATORS : "typing_in_thread"
+    CHANNEL_PRESENCE ||--o{ TYPING_INDICATORS : "presence_typing"
+    
+    %% MongoDB Sharding Strategy
+    SHARDING_CONFIG {
+        collection messages "Shard Key: shard_key (channel_id || conversation_id)"
+        collection message_read_states "Shard Key: user_id (user-based sharding)"
+        collection message_threads "Shard Key: channel_id (channel-based sharding)" 
+        collection typing_indicators "No sharding (TTL collection, small dataset)"
+        collection channel_presence "Shard Key: channel_id (channel-based sharding)"
+        
+        zones zone_us_east "US East data center"
+        zones zone_us_west "US West data center"  
+        zones zone_eu "Europe data center"
+        zones zone_asia "Asia data center"
+    }
+    
+    %% MongoDB Indexes Strategy
+    MESSAGES {
+        %% Primary Queries - Compound Indexes
+        index message_type_location_time "message_type, shard_key, created_at desc"
+        index channel_messages_pagination "channel_id, message_number desc, _id"
+        index dm_messages_pagination "conversation_id, message_number desc, _id"
+        index thread_messages_order "thread_id, created_at asc, message_number asc"
+        
+        %% User-specific Queries
+        index author_recent_messages "author_id, created_at desc"
+        index author_channel_messages "author_id, channel_id, created_at desc"
+        
+        %% Content & Social Queries
+        index mentions_lookup "mentions.id, mentions.type, created_at desc"
+        index reactions_tracking "reactions (sparse), created_at desc"
+        index pinned_messages "is_pinned, channel_id, pinned_at desc"
+        index reply_tracking "reply_to, created_at asc"
+        
+        %% Search & Filtering
+        index content_type_filter "content_type, message_type, created_at desc"
+        index deleted_messages "is_deleted, deleted_at"
+        index system_messages "is_system, message_type, created_at desc"
+        index attachments_filter "attachments (sparse), created_at desc"
+        
+        %% Performance Optimization
+        index hot_data_partition "created_at desc, shard_key" 
+        index cold_data_partition "created_at asc, is_deleted"
+        
+        %% Text Search (MongoDB Atlas Search)
+        search_index content_search "content, author_username fields"
+        search_index attachment_search "attachments.name, attachments.searchable_text fields"
+        
+        %% Sharding Key
+        shard_key composite_location "shard_key (channel_id || conversation_id)"
+    }
+    
+    MESSAGE_READ_STATES {
+        %% User Read State Queries
+        index user_channels "user_id, channel_reads"
+        index user_conversations "user_id, conversation_reads" 
+        index user_receipts "user_id, message_receipts.read_at desc"
+        
+        %% Cross-reference Queries
+        index message_read_lookup "message_receipts.message_id"
+        
+        %% Sharding
+        shard_key user_based "user_id"
+    }
+    
+    MESSAGE_THREADS {
+        %% Thread Discovery & Management
+        index channel_active_threads "channel_id, status, last_message_at desc"
+        index channel_pinned_threads "channel_id, is_pinned, created_at desc"
+        index thread_participants "participants.user_id, participants.last_read_at desc"
+        index starter_threads "starter_id, created_at desc"
+        
+        %% Thread State Queries
+        index archived_threads "status, archived_at desc"
+        index auto_archive_candidates "auto_archive, last_message_at asc"
+        
+        %% Performance Indexes
+        index thread_activity "message_count desc, member_count desc"
+        index thread_search "title (text), description (text)"
+        
+        %% Sharding
+        shard_key channel_based "channel_id"
     }
     
     TYPING_INDICATORS {
-        objectid _id PK
-        uuid channel_id FK "Channel where typing"
-        uuid conversation_id "DM conversation ID"
-        uuid user_id FK "User who is typing"
-        varchar username "Denormalized username"
-        timestamp started_at "When typing started"
-        timestamp expires_at "When to stop showing"
+        %% Real-time Queries (TTL Collection)
+        index location_typing "channel_id, conversation_id, expires_at"
+        index user_typing_status "user_id, started_at desc"
+        index thread_typing "thread_id, expires_at"
+        
+        %% TTL Cleanup
+        ttl_index auto_expire "expires_at (TTL: 0 seconds)"
     }
     
-    %% Read Models (Elasticsearch)
+    CHANNEL_PRESENCE {
+        %% Presence Tracking (TTL Collection)
+        index channel_active_users "channel_id, status, last_activity desc"
+        index user_presence "user_id, heartbeat desc"
+        index presence_by_status "status, last_activity desc"
+        
+        %% TTL Cleanup  
+        ttl_index presence_expire "heartbeat (TTL: 300 seconds)"
+    }
+    
+    %% Read Model Indexes
     MESSAGE_SEARCH_INDEX {
-        uuid message_id PK
-        uuid channel_id
-        uuid server_id
-        uuid author_id
-        varchar author_username
-        text content "Full-text searchable"
-        json attachments "Nested objects"
-        json mentions "Nested objects"
-        timestamp created_at
-        boolean is_deleted
+        %% Elasticsearch Mappings (if using ES)
+        mapping content "text analyzer: standard"
+        mapping author_fields "keyword + text multi-field"
+        mapping dates "date format: yyyy-MM-dd'T'HH:mm:ss"
+        mapping attachments "nested objects"
+        mapping mentions "nested objects"
+        
+        %% Search Performance
+        index content_search "content (text), author_username"
+        index filtered_search "channel_id, server_id, created_at, is_deleted"
+        index mention_search "mentions (multikey)"
     }
     
-    %% Analytics (ClickHouse)
     MESSAGE_ANALYTICS {
-        uuid message_id
-        uuid channel_id
-        uuid server_id
-        uuid author_id
-        enum message_type "text|media|embed|system"
-        integer content_length
-        integer attachment_count
-        integer mention_count
-        integer reaction_count
-        timestamp created_at
-        varchar hour_bucket "YYYY-MM-DD HH for aggregation"
+        %% Time Series Optimization (ClickHouse style)
+        partition by_month "toYYYYMM(created_at)"
+        index time_dimensions "hour_bucket, day_bucket, week_bucket"
+        index context_dimensions "channel_id, server_id, author_id"
+        index metrics_analysis "message_type, content_type, reaction_count"
+        index engagement_tracking "is_viral, reply_count desc"
+        
+        %% Aggregation Indexes
+        index hourly_stats "hour_bucket, channel_id, message_type"
+        index daily_stats "day_bucket, server_id, author_id"
     }
     
-    %% Relationships (Conceptual in MongoDB)
-    MESSAGES ||--o{ MESSAGE_READ_STATES : "read_by"
-    MESSAGES ||--o{ MESSAGE_THREADS : "can_start"
-    MESSAGES ||--|| MESSAGE_SEARCH_INDEX : "indexed_in"
-    MESSAGES ||--|| MESSAGE_ANALYTICS : "analyzed_in"
-    MESSAGE_THREADS ||--o{ TYPING_INDICATORS : "typing_in"
-    
-    %% MongoDB Indexes
-    MESSAGES {
-        index type_channel_created "message_type, channel_id, created_at desc"
-        index type_conversation_created "message_type, conversation_id, created_at desc"
-        index author_created "author_id, created_at desc"
-        index server_created "server_id, created_at desc"
-        index thread_messages "thread_id, created_at asc"
-        index mentions_multikey "mentions (multikey)"
-        index content_search "content (text)"
-        index pinned_channel "is_pinned, channel_id, created_at desc"
-        shard_key channel_conversation "coalesce(channel_id, conversation_id)"
-    }
-    
-    MESSAGE_READ_STATES {
-        index user_channel_read "user_id, channel_id, read_at desc"
-        index user_conversation_read "user_id, conversation_id, read_at desc"
-        index message_readers "message_id, user_id"
-    }
-    
-    MESSAGE_THREADS {
-        index channel_last_message "channel_id, last_message_at desc"
-        index starter_threads "starter_id, created_at desc"
+    MESSAGE_CACHE {
+        %% Redis-style Caching Strategy
+        index cache_lookup "cache_key"
+        index cache_expiry "cache_updated, ttl_seconds"
+        
+        %% Cache Warming Strategy
+        strategy hot_channels "Top 1000 most active channels"
+        strategy recent_dms "DM conversations with activity in last 24h"
+        strategy user_servers "Channels from user's joined servers"
     } 
