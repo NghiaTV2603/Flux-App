@@ -1,0 +1,102 @@
+### Email Service API Testing
+
+# Health Check
+GET http://localhost:8085/api/v1/actuator/health
+Accept: application/json
+
+###
+
+# Health Check với Details
+GET http://localhost:8085/api/v1/actuator/health?showDetails=true
+Accept: application/json
+
+###
+
+# Metrics
+GET http://localhost:8085/api/v1/actuator/metrics
+Accept: application/json
+
+###
+
+# Send Email Request (sẽ cần implement EmailController)
+POST http://localhost:8085/api/v1/emails/send
+Content-Type: application/json
+
+{
+  "recipientEmail": "test@example.com",
+  "recipientName": "Test User",
+  "templateName": "WELCOME_EMAIL",
+  "templateVariables": {
+    "userName": "Test User",
+    "userEmail": "test@example.com",
+    "loginUrl": "https://flux.com/login",
+    "supportEmail": "support@flux.com",
+    "currentYear": "2024"
+  },
+  "priority": 3
+}
+
+###
+
+# Schedule Email Request
+POST http://localhost:8085/api/v1/emails/schedule
+Content-Type: application/json
+
+{
+  "recipientEmail": "test@example.com",
+  "recipientName": "Test User",
+  "templateName": "SERVER_INVITATION",
+  "templateVariables": {
+    "userName": "Test User",
+    "serverName": "Test Server",
+    "inviterName": "Admin",
+    "inviteUrl": "https://flux.com/invite/abc123"
+  },
+  "priority": 2,
+  "scheduledAt": "2024-01-15T15:30:00"
+}
+
+###
+
+# Get Email Queue
+GET http://localhost:8085/api/v1/emails/queue
+Accept: application/json
+
+###
+
+# Get Email Queue with pagination
+GET http://localhost:8085/api/v1/emails/queue?page=0&size=10&status=PENDING
+Accept: application/json
+
+###
+
+# Get Email Templates
+GET http://localhost:8085/api/v1/templates
+Accept: application/json
+
+###
+
+# Create Email Template
+POST http://localhost:8085/api/v1/templates
+Content-Type: application/json
+
+{
+  "templateName": "TEST_EMAIL",
+  "templateType": "TEST",
+  "subjectTemplate": "Test Email for [[${userName}]]",
+  "htmlContent": "<html><body><h1>Hello [[${userName}]]!</h1><p>This is a test email.</p></body></html>",
+  "textContent": "Hello [[${userName}]]! This is a test email.",
+  "createdBy": "admin"
+}
+
+###
+
+# Get Email Statistics
+GET http://localhost:8085/api/v1/emails/stats
+Accept: application/json
+
+###
+
+# Retry Failed Email
+POST http://localhost:8085/api/v1/emails/queue/1/retry
+Content-Type: application/json
