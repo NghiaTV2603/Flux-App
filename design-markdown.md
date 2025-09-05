@@ -23,17 +23,18 @@
 
 ## Chức năng chính (MVP)
 
-### Các service (Tối ưu hóa - 6 services)
+### Các service (Tối ưu hóa - 7 services)
 
-| Service                  | Mô tả                                                 |
-| ------------------------ | ----------------------------------------------------- |
-| Auth Service             | Quản lý đăng nhập, đăng ký, OAuth, quên mật khẩu, JWT |
-| User & Social Service    | User profiles, friends, blocking, social features     |
-| Server & Channel Service | Servers, channels, roles, permissions, members        |
-| Message Service          | Tất cả tin nhắn (channel + DM), threads, reactions    |
-| Media & File Service     | Upload, lưu trữ, CDN, file sharing, avatars           |
-| Realtime Service         | WebSocket, voice calls, screen share, notifications   |
-| Gateway API              | API Gateway với rate limiting và security             |
+| Service                  | Mô tả                                                     |
+| ------------------------ | --------------------------------------------------------- |
+| Auth Service             | Quản lý đăng nhập, đăng ký, OAuth, quên mật khẩu, JWT     |
+| User & Social Service    | User profiles, friends, blocking, social features         |
+| Server & Channel Service | Servers, channels, roles, permissions, members            |
+| Message Service          | Tất cả tin nhắn (channel + DM), threads, reactions        |
+| Media & File Service     | Upload, lưu trữ, CDN, file sharing, avatars               |
+| Realtime Service         | WebSocket, voice calls, screen share, notifications       |
+| **Email Service**        | **Gửi email tự động, templates, tracking, rate limiting** |
+| Gateway API              | API Gateway với rate limiting và security                 |
 
 ## Core Features
 
@@ -169,8 +170,74 @@ final_permissions = base_permissions | role_permissions | channel_allows & ~chan
 | Message Service          | MongoDB + Elasticsearch (search) |
 | Media & File Service     | PostgreSQL + Object Storage (S3) |
 | Realtime Service         | Redis + PostgreSQL               |
+| **Email Service**        | **PostgreSQL + Redis (cache)**   |
 
 ## Services
+
+### Email Service
+
+**Mô tả**: Service độc lập được xây dựng bằng Spring Boot để gửi email tự động cho các sự kiện trong hệ thống như đăng ký, tham gia server, reset password.
+
+**Công nghệ**: Spring Boot + Java 17+ + PostgreSQL + RabbitMQ + Redis + Thymeleaf
+
+#### API Routes:
+
+| Method | Route                     | Mô tả                     |
+| ------ | ------------------------- | ------------------------- |
+| POST   | `/api/v1/emails/send`     | Gửi email ngay lập tức    |
+| POST   | `/api/v1/emails/schedule` | Lên lịch gửi email        |
+| GET    | `/api/v1/emails/queue`    | Lấy danh sách email queue |
+| POST   | `/api/v1/templates`       | Tạo template email        |
+| GET    | `/api/v1/templates`       | Lấy danh sách templates   |
+| GET    | `/api/v1/emails/stats`    | Thống kê email            |
+
+#### Event Subscriptions:
+
+- `user.created` → Gửi welcome email
+- `server.member.invited` → Gửi invitation email
+- `server.member.joined` → Gửi confirmation email
+- `user.password.reset.requested` → Gửi reset password email
+
+#### Database schema:
+
+**EmailTemplate**
+
+| Field            | Type         | Ghi chú                      |
+| ---------------- | ------------ | ---------------------------- |
+| id               | BIGINT       | PK                           |
+| template_name    | VARCHAR(100) | Tên template (unique)        |
+| template_type    | VARCHAR(50)  | WELCOME, SERVER_INVITE, etc. |
+| subject_template | VARCHAR(500) | Template subject             |
+| html_content     | TEXT         | Nội dung HTML                |
+| text_content     | TEXT         | Nội dung text                |
+| is_active        | BOOLEAN      | Trạng thái hoạt động         |
+| created_at       | TIMESTAMP    |                              |
+| updated_at       | TIMESTAMP    |                              |
+
+**EmailQueue**
+
+| Field              | Type         | Ghi chú               |
+| ------------------ | ------------ | --------------------- |
+| id                 | BIGINT       | PK                    |
+| recipient_email    | VARCHAR(320) | Email người nhận      |
+| template_id        | BIGINT       | FK → EmailTemplate    |
+| template_variables | JSON         | Biến thay thế         |
+| priority           | INTEGER      | Độ ưu tiên (1-5)      |
+| status             | VARCHAR(20)  | PENDING, SENT, FAILED |
+| scheduled_at       | TIMESTAMP    | Thời gian gửi         |
+| retry_count        | INTEGER      | Số lần retry          |
+| error_message      | TEXT         | Lỗi nếu có            |
+
+**EmailLog**
+
+| Field           | Type         | Ghi chú                 |
+| --------------- | ------------ | ----------------------- |
+| id              | BIGINT       | PK                      |
+| email_queue_id  | BIGINT       | FK → EmailQueue         |
+| recipient_email | VARCHAR(320) | Email nhận              |
+| status          | VARCHAR(20)  | SENT, DELIVERED, FAILED |
+| sent_at         | TIMESTAMP    | Thời gian gửi           |
+| delivered_at    | TIMESTAMP    | Thời gian nhận          |
 
 ### Auth Service
 
@@ -672,13 +739,14 @@ Database Layer:
 └─────────┘ └─────────┘ └─────────┘ └─────────┘
 ```
 
-**Kiến trúc mới (6 services) vs Cũ (13 services):**
+**Kiến trúc mới (7 services) vs Cũ (13 services):**
 
-- ✅ Giảm 54% số lượng services
+- ✅ Giảm 46% số lượng services
 - ✅ Giảm network latency và complexity
 - ✅ Dễ maintain và debug
 - ✅ Vẫn đảm bảo separation of concerns
 - ✅ Independent scaling và technology choices
+- ✅ Email Service độc lập với Spring Boot
 
 ## Message Queue Design
 
@@ -692,15 +760,18 @@ Database Layer:
 - `server.queue`
 - `friend.queue`
 - `dm.queue`
+- `email.queue` → **Email Service processing**
 
 ### Các event chính:
 
-- `user.created`
+- `user.created` → **Email Service** (welcome email)
 - `user.status.changed`
+- `user.password.reset.requested` → **Email Service** (reset email)
 - `friend.requested`
 - `friend.accepted`
-- `server.created`
-- `server.member.joined`
+- `server.created` → **Email Service** (server created email)
+- `server.member.invited` → **Email Service** (invitation email)
+- `server.member.joined` → **Email Service** (confirmation email)
 - `server.member.left`
 - `message.direct.sent`
 - `message.channel.sent`

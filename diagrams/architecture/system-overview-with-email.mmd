@@ -1,0 +1,105 @@
+graph TB
+    %% Client Layer
+    subgraph "Client Applications"
+        WebApp[🌐 Web App<br/>React/Vue]
+        MobileApp[📱 Mobile App<br/>React Native]
+        DesktopApp[🖥️ Desktop App<br/>Electron]
+    end
+
+    %% Gateway Layer
+    subgraph "API Gateway"
+        Gateway[🚪 Gateway API<br/>Node.js/NestJS<br/>Auth, Rate Limiting]
+    end
+
+    %% Service Layer
+    subgraph "Microservices Architecture"
+        subgraph "Core Services (Node.js/NestJS)"
+            AuthService[🔐 Auth Service<br/>JWT, OAuth, Password]
+            UserService[👥 User & Social Service<br/>Profiles, Friends, Social]
+            ServerService[🏢 Server & Channel Service<br/>Servers, Channels, Roles]
+            MessageService[💬 Message Service<br/>Chat, DM, Reactions]
+            MediaService[📁 Media & File Service<br/>Upload, Storage, CDN]
+            RealtimeService[⚡ Realtime Service<br/>WebSocket, Voice, Live]
+        end
+        
+        subgraph "Email Service (Spring Boot)"
+            EmailService[📧 Email Service<br/>Spring Boot + Java<br/>Templates, Queue, Tracking]
+        end
+    end
+
+    %% Message Broker
+    subgraph "Message Queue"
+        RabbitMQ[🐰 RabbitMQ<br/>Event-Driven Communication]
+    end
+
+    %% Database Layer
+    subgraph "Data Storage"
+        subgraph "PostgreSQL Databases"
+            AuthDB[(🗄️ Auth DB<br/>Users, OAuth)]
+            UserDB[(🗄️ User DB<br/>Profiles, Friends)]
+            ServerDB[(🗄️ Server DB<br/>Servers, Channels)]
+            MediaDB[(🗄️ Media DB<br/>File Metadata)]
+            RealtimeDB[(🗄️ Realtime DB<br/>Sessions, Voice)]
+            EmailDB[(🗄️ Email DB<br/>Templates, Queue, Logs)]
+        end
+        
+        MongoDB[(🍃 MongoDB<br/>Messages, Chat History)]
+        Redis[(🔴 Redis<br/>Cache, Sessions, Rate Limiting)]
+        S3[(☁️ S3/MinIO<br/>File Storage)]
+    end
+
+    %% External Services
+    subgraph "External Services"
+        SMTP[📤 SMTP Server<br/>Gmail/SendGrid]
+        OAuth[🔑 OAuth Providers<br/>Google, GitHub, Discord]
+    end
+
+    %% Connections
+    WebApp --> Gateway
+    MobileApp --> Gateway
+    DesktopApp --> Gateway
+
+    Gateway --> AuthService
+    Gateway --> UserService
+    Gateway --> ServerService
+    Gateway --> MessageService
+    Gateway --> MediaService
+    Gateway --> RealtimeService
+
+    %% Service to Database connections
+    AuthService --> AuthDB
+    UserService --> UserDB
+    UserService --> Redis
+    ServerService --> ServerDB
+    ServerService --> Redis
+    MessageService --> MongoDB
+    MediaService --> MediaDB
+    MediaService --> S3
+    RealtimeService --> RealtimeDB
+    RealtimeService --> Redis
+    EmailService --> EmailDB
+    EmailService --> Redis
+
+    %% Event-driven connections
+    AuthService --> RabbitMQ
+    UserService --> RabbitMQ
+    ServerService --> RabbitMQ
+    MessageService --> RabbitMQ
+    RabbitMQ --> EmailService
+
+    %% External service connections
+    AuthService --> OAuth
+    EmailService --> SMTP
+
+    %% Styling
+    classDef serviceNode fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef dbNode fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef clientNode fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef emailNode fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    classDef externalNode fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class AuthService,UserService,ServerService,MessageService,MediaService,RealtimeService,Gateway serviceNode
+    class AuthDB,UserDB,ServerDB,MediaDB,RealtimeDB,EmailDB,MongoDB,Redis,S3 dbNode
+    class WebApp,MobileApp,DesktopApp clientNode
+    class EmailService emailNode
+    class SMTP,OAuth externalNode

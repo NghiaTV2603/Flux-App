@@ -1,0 +1,82 @@
+erDiagram
+    EmailTemplate {
+        BIGINT id PK
+        VARCHAR template_name UK "Template name (unique)"
+        VARCHAR template_type "WELCOME, SERVER_INVITE, etc."
+        VARCHAR subject_template "Subject template with variables"
+        TEXT html_content "HTML email content"
+        TEXT text_content "Plain text fallback"
+        BOOLEAN is_active "Template active status"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        VARCHAR created_by "Creator username"
+    }
+
+    EmailQueue {
+        BIGINT id PK
+        VARCHAR recipient_email "Recipient email address"
+        VARCHAR recipient_name "Recipient display name"
+        BIGINT template_id FK "References EmailTemplate"
+        JSON template_variables "Variables for template substitution"
+        INTEGER priority "1=highest, 5=lowest priority"
+        VARCHAR status "PENDING, PROCESSING, SENT, FAILED"
+        TIMESTAMP scheduled_at "When to send email"
+        TIMESTAMP sent_at "When email was actually sent"
+        INTEGER retry_count "Current retry attempt"
+        INTEGER max_retries "Maximum retry attempts"
+        TEXT error_message "Error details if failed"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    EmailLog {
+        BIGINT id PK
+        BIGINT email_queue_id FK "References EmailQueue"
+        VARCHAR recipient_email "Email recipient"
+        VARCHAR subject "Email subject line"
+        VARCHAR status "SENT, DELIVERED, BOUNCED, FAILED"
+        VARCHAR provider_message_id "ID from email provider"
+        JSON delivery_status "Detailed delivery information"
+        TIMESTAMP sent_at "When email was sent"
+        TIMESTAMP delivered_at "When email was delivered"
+        TIMESTAMP opened_at "When email was opened"
+        TIMESTAMP clicked_at "When links were clicked"
+    }
+
+    EmailSettings {
+        BIGINT id PK
+        VARCHAR setting_key UK "Configuration key (unique)"
+        TEXT setting_value "Configuration value"
+        VARCHAR description "Setting description"
+        BOOLEAN is_active "Setting active status"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    EmailRateLimit {
+        BIGINT id PK
+        VARCHAR recipient_email "Email being rate limited"
+        VARCHAR limit_type "HOURLY, DAILY, WEEKLY"
+        INTEGER current_count "Current email count"
+        INTEGER max_count "Maximum allowed emails"
+        TIMESTAMP window_start "Rate limit window start"
+        TIMESTAMP window_end "Rate limit window end"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    EmailBlacklist {
+        BIGINT id PK
+        VARCHAR email_pattern "Email or domain pattern"
+        VARCHAR reason "Reason for blacklisting"
+        BOOLEAN is_active "Blacklist entry active"
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+        VARCHAR created_by "Who created this entry"
+    }
+
+    %% Relationships
+    EmailTemplate ||--o{ EmailQueue : "has many queued emails"
+    EmailQueue ||--o{ EmailLog : "has many log entries"
+    EmailQueue }o--|| EmailTemplate : "uses template"
+    EmailLog }o--|| EmailQueue : "logs queue item"

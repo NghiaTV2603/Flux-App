@@ -1,0 +1,92 @@
+sequenceDiagram
+    participant User as 👤 User
+    participant AuthService as 🔐 Auth Service
+    participant UserService as 👥 User Service
+    participant ServerService as 🏢 Server Service
+    participant RabbitMQ as 🐰 RabbitMQ
+    participant EmailService as 📧 Email Service
+    participant SMTP as 📨 SMTP Server
+    participant Database as 🗄️ PostgreSQL
+
+    %% User Registration Flow
+    rect rgb(79, 96, 111)
+        Note over User, Database: User Registration Email Flow
+        User->>AuthService: POST /auth/register
+        AuthService->>Database: Save user
+        AuthService->>RabbitMQ: Publish "user.created" event
+        AuthService->>User: Registration success response
+        
+        RabbitMQ->>EmailService: Consume "user.created" event
+        EmailService->>Database: Load WELCOME_EMAIL template
+        EmailService->>Database: Create EmailQueue entry
+        EmailService->>Database: Load template variables
+        EmailService->>EmailService: Process template with user data
+        EmailService->>SMTP: Send welcome email
+        SMTP-->>EmailService: Delivery confirmation
+        EmailService->>Database: Update EmailQueue status
+        EmailService->>Database: Create EmailLog entry
+    end
+
+    %% Server Invitation Flow  
+    rect rgb(88, 88, 88)
+        Note over User, Database: Server Invitation Email Flow
+        User->>ServerService: POST /servers/{id}/invite
+        ServerService->>RabbitMQ: Publish "server.member.invited" event
+        ServerService->>User: Invitation sent response
+        
+        RabbitMQ->>EmailService: Consume "server.member.invited" event
+        EmailService->>Database: Load SERVER_INVITATION template
+        EmailService->>Database: Create EmailQueue entry (high priority)
+        EmailService->>Database: Check rate limits for recipient
+        alt Rate limit OK
+            EmailService->>EmailService: Process invitation template
+            EmailService->>SMTP: Send invitation email
+            SMTP-->>EmailService: Delivery confirmation
+            EmailService->>Database: Update EmailQueue status = SENT
+            EmailService->>Database: Create EmailLog entry
+        else Rate limit exceeded
+            EmailService->>Database: Update EmailQueue status = FAILED
+            EmailService->>Database: Log rate limit error
+        end
+    end
+
+    %% Server Join Confirmation Flow
+    rect rgb(79, 96, 111)
+        Note over User, Database: Server Join Confirmation Flow
+        User->>ServerService: POST /servers/{id}/join
+        ServerService->>Database: Add user to server
+        ServerService->>RabbitMQ: Publish "server.member.joined" event
+        ServerService->>User: Join success response
+        
+        RabbitMQ->>EmailService: Consume "server.member.joined" event
+        EmailService->>Database: Load SERVER_JOIN_CONFIRMATION template
+        EmailService->>Database: Create EmailQueue entry
+        EmailService->>EmailService: Process confirmation template
+        EmailService->>SMTP: Send confirmation email
+        SMTP-->>EmailService: Delivery confirmation
+        EmailService->>Database: Update EmailQueue status
+        EmailService->>Database: Create EmailLog entry
+    end
+
+    %% Email Retry Flow
+    rect rgb(255, 255, 240)
+        Note over EmailService, Database: Email Retry Mechanism
+        EmailService->>Database: Query failed emails for retry
+        loop For each failed email
+            EmailService->>Database: Check retry count < max_retries
+            alt Can retry
+                EmailService->>Database: Increment retry_count
+                EmailService->>SMTP: Retry send email
+                alt Success
+                    EmailService->>Database: Update status = SENT
+                    EmailService->>Database: Create success log
+                else Still failed
+                    EmailService->>Database: Update error_message
+                    EmailService->>Database: Create failure log
+                end
+            else Max retries reached
+                EmailService->>Database: Update status = FAILED_PERMANENT
+                EmailService->>Database: Create final failure log
+            end
+        end
+    end
